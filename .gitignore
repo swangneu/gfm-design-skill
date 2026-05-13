@@ -1,0 +1,30 @@
+# MATLAB
+*.asv
+*.m~
+*.mex*
+*.slxc
+*.slx.r*
+*.autosave
+slprj/
+sccprj/
+codegen/
+
+# Simulink cache
+*.SimulinkProject/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Sim outputs (users generate these locally)
+runs/
+
+# Local Claude state
+.claude/settings.local.json
