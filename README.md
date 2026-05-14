@@ -1,6 +1,6 @@
 # gfm-design
 
-A portable Codex / Claude Code skill for designing grid-forming (GFM) inverter controllers for MATLAB/Simulink + Simscape Electrical.
+A portable [Codex](https://openai.com/codex) / [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) skill for designing grid-forming (GFM) inverter controllers for MATLAB/Simulink + Simscape Electrical.
 
 ## What it does
 
@@ -45,7 +45,7 @@ Decision tree across all laws: [control-law-taxonomy.md](references/control-law-
 
 The skill is a folder containing `SKILL.md`, `references/`, and `scripts/`. Install the same folder in the skill directory for the agent you use.
 
-### Codex
+### [Codex](https://openai.com/codex)
 
 User-level install on Windows PowerShell:
 
@@ -65,7 +65,7 @@ git clone https://github.com/swangneu/gfm-design-skill "$root/skills/gfm-design"
 
 Restart Codex, then ask for a GFM design task or invoke the skill explicitly with `$gfm-design`.
 
-### Claude Code
+### [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
 
 Project-level install (this repo only, commits to git):
 
