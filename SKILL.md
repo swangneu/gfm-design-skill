@@ -1,6 +1,6 @@
 ---
 name: gfm-design
-description: "Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, and multi-unit P/Q sharing. Produces a populated `gfm_params.m` parameter struct plus analytical predictions (steady-state ω/V/P/Q, small-signal poles) for the user to drop into their own Simulink model. Out of scope: post-simulation validation (manual sim review), bridge/PWM correctness, grid-following controllers."
+description: "Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, multi-unit P/Q sharing, and nominal current/protection envelope checks. Produces a populated `gfm_params.m` parameter struct plus analytical predictions (steady-state ω/V/P/Q, current headroom, small-signal poles) for the user to drop into their own Simulink model. Out of scope: certification/grid-code compliance proof, post-simulation validation (manual sim review), bridge/PWM correctness, grid-following controllers."
 ---
 
 # GFM Design
@@ -16,10 +16,13 @@ specs (S, V, f_n, LCL, droop %, swing dynamics)
 choose control law (droop / VSG / dVOC / PSC)
    |
    v
+record protection envelope (current limits, modulation headroom, grid-code assumptions)
+   |
+   v
 populate gfm_params.m  (analytical formulas + bandwidth ladder)
    |
    v
-predict steady-state and small-signal behavior  (gfm_predict_steady_state + gfm_smallsignal)
+predict steady-state, current headroom, and small-signal behavior  (gfm_predict_steady_state + gfm_smallsignal)
    |
    v
 hand the parameter struct off to the user's Simulink model — manual sim review closes the loop
@@ -53,6 +56,8 @@ References (read on demand — they are self-contained, not just citations):
 - `references/psc-design.md` — Harnefors-style power-synchronization control.
 - `references/inner-loops-and-lcl.md` — cascaded V-outer + I-inner PI on dq, bandwidth ladder, LCL resonance window, active vs. passive damping.
 - `references/virtual-impedance.md` — cross-cutting Q-sharing fix, fault-current limiting hook.
+- `references/current-limiting-and-protection.md` — current ratings, limiter modes, anti-windup, and fault/recovery checklist.
+- `references/standards-and-grid-codes.md` — how to reference IEEE 1547/2800, UNIFI, and site grid-code assumptions without claiming compliance.
 - `references/multi-unit-sharing.md` — predicted P/Q sharing math, line-Z mismatch, when to add secondary control.
 - `references/bibliography.md` — IEEE Transactions citations, organized by family.
 
@@ -73,10 +78,11 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 1. **Confirm scope**: single inverter or multi-unit? Grid-connected or islanded? SCR (X/R)? — these gate the choice of control law more than tuning does.
 2. **Pick a control law** using `references/control-law-taxonomy.md`. Record the *why* (a sentence) so it lands in the `gfm_params.m` header.
 3. **Set the bandwidth ladder** before any gain math: `f_pwr_filt ≪ f_outer_v ≪ f_inner_i ≪ f_sw/2`, and `m_p · S_rated · f_pwr_filt ≪ f_n`. Reject specs that violate this — they will not be fixable by tuning.
-4. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
-5. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect any frequency/voltage deviation before handing off.
-6. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable.
-7. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
+4. **Record the protection envelope** before handoff math: continuous/short-time current, modulation ceiling, current-limiter mode, anti-windup expectation, and applicable standard/grid-code target. If the user does not provide these, label the output as a nominal controller design only. Read `references/current-limiting-and-protection.md` and `references/standards-and-grid-codes.md` for abnormal-event work.
+5. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
+6. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect frequency/voltage/current headroom before handing off. If any unit is current-limited or modulation-limited, the linear sharing prediction is invalid.
+7. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable.
+8. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
 
 ## Parameter-struct conventions
 
@@ -85,6 +91,7 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 - Plant topology assumed: `DC bus → Universal Bridge → L_f (RL) → Cf-Rd shunt to Yg → L_2 (RL) → VI Meas → Grid Z → Three-Phase Source (Yg)`.
 - Controller intended as a `MATLAB Function` block, codegen-compatible, sampled at `p.Ts_ctrl`. It owns *all* state (no inner V/I loops as separate blocks).
 - Controller output: `m_abc ∈ [-1, 1]` direct to a `PWM Generator (2-Level)` with `ModulatingSignals='off'` (external modulation). No SVPWM, no dq-frame outputs.
+- Protection fields (`I_cont_peak`, `I_limit_peak`, `I_short_peak`, `t_short_limit`, `m_max`, `current_limit_mode`) are design-screening assumptions. They do not implement protection unless the user's controller consumes them.
 - Discrete power system: `powergui` in `Discrete` mode, `Ts = p.Ts_power = 1e-6`. Solver `ode23tb` with `MaxStep = 1e-4`.
 - `gfm_params()` should `assignin('base','p',p)` so block parameters like `'p.V_dc'` resolve at compile time.
 
@@ -95,7 +102,8 @@ A Simulink model that violates these conventions will still accept the `p` struc
 When the design phase ends, produce:
 
 1. A populated `gfm_params.m` (printed inline, or written to disk on user request).
-2. A short rationale: chosen law + one sentence why, the bandwidth ladder values, predicted steady-state P/Q from `gfm_predict_steady_state`.
-3. (Optional) Small-signal pole locations from `gfm_smallsignal` if stability margin matters.
+2. A short rationale: chosen law + one sentence why, the bandwidth ladder values, predicted steady-state P/Q/current headroom from `gfm_predict_steady_state`.
+3. A protection/grid-code assumptions note: current limits used, limiter mode, modulation headroom, and whether IEEE/UNIFI/site requirements are known or still missing.
+4. (Optional) Small-signal pole locations from `gfm_smallsignal` if stability margin matters.
 
-Do not pretend to have run simulations. The skill never invokes `sim()` — simulation evidence comes from the user running MATLAB+Simulink and inspecting numerics/plots.
+Do not pretend to have run simulations or compliance tests. The skill never invokes `sim()` — simulation and grid-code evidence come from the user running MATLAB+Simulink, EMT/HIL cases, and project-specific review.

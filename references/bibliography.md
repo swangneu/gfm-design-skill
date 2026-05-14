@@ -51,7 +51,13 @@ Selection criteria (per user instruction): prefer IEEE Transactions; accept IEEE
 
 **Overcurrent / fault-ride-through for GFM**
 - Rosso, R.; Wang, X.; Liserre, M.; Lu, X.; Engelken, S. *Grid-forming converters: Control approaches, grid-synchronization, and future trends — A review*. IEEE Open Journal of Industry Applications, 2:93–109, 2021.
-- *Overcurrent Limiting in Grid-Forming Inverters*. IEEE TPEL 39 (2024): 14493–14517.
+- Baeckeland, N.; Chatterjee, D.; Lu, M.; Johnson, B.; Seo, G.-S. *Overcurrent Limiting in Grid-Forming Inverters: A Comprehensive Review and Discussion*. IEEE Transactions on Power Electronics, 39(11):14493-14517, Nov 2024. DOI: 10.1109/TPEL.2024.3430316.
+
+## Standards, specifications, and grid-code anchors
+
+- IEEE Std 1547-2018. *IEEE Standard for Interconnection and Interoperability of Distributed Energy Resources with Associated Electric Power Systems Interfaces*. Use for distribution DER interconnection requirements and test expectations.
+- IEEE Std 2800-2022. *IEEE Standard for Interconnection and Interoperability of Inverter-Based Resources (IBRs) Interconnecting with Associated Transmission Electric Power Systems*. Use for transmission/sub-transmission IBR capability expectations.
+- UNIFI Consortium. *Specifications for Grid-forming Inverter-based Resources, Version 2*. NREL/TP-5D00-89269, 2024. Use for GFM-specific functional behavior, current-limited ride-through assumptions, and EMT model expectations.
 
 ## Surveys and landscape papers
 

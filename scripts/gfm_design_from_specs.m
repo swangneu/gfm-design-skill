@@ -17,6 +17,11 @@ function p = gfm_design_from_specs(varargin)
 %     'f_sw'         - PWM carrier Hz                    (default 10e3)
 %     'f_bw_i'       - inner I PI bandwidth Hz target    (default 1000)
 %     'f_bw_v'       - outer V PI bandwidth Hz target    (default 100)
+%     'I_cont_pu'    - continuous current limit pu       (default 1.0)
+%     'I_limit_pu'   - software limiter pickup pu        (default 1.2)
+%     'I_short_pu'   - short-time current capability pu  (default 1.5)
+%     't_short_limit'- short-time current duration s     (default 2.0)
+%     'm_max'        - modulation-index ceiling          (default 0.98)
 %
 %   Law-specific (apply only when 'law' matches):
 %     VSG:    'H_inertia'  - virtual inertia constant s  (default 2.0)
@@ -51,6 +56,17 @@ p.V_peak   = p.V_ph_rms   * sqrt(2);
 % --- Rated power ---
 p.S_rated  = opt.S_rated;
 p.I_peak   = p.S_rated*sqrt(2) / (sqrt(3)*p.V_LL_rms);
+
+% --- Protection / rating envelope ---
+p.I_rated_peak       = p.I_peak;
+p.I_cont_peak        = opt.I_cont_pu  * p.I_rated_peak;
+p.I_limit_peak       = opt.I_limit_pu * p.I_rated_peak;
+p.I_short_peak       = opt.I_short_pu * p.I_rated_peak;
+p.t_short_limit      = opt.t_short_limit;
+p.I_abs_max_peak     = opt.I_abs_max_pu * p.I_rated_peak;
+p.m_max              = opt.m_max;
+p.current_limit_mode = lower(opt.current_limit_mode);
+p.limit_priority     = 'self_protection>grid_support>setpoint_tracking';
 
 % --- DC bus ---
 p.V_dc     = opt.V_dc;
@@ -182,6 +198,14 @@ ip.addParameter('f_pwr_filt',   5);
 % Bandwidth targets
 ip.addParameter('f_bw_i',       1000);
 ip.addParameter('f_bw_v',       100);
+% Protection / rating envelope
+ip.addParameter('I_cont_pu',    1.0);
+ip.addParameter('I_limit_pu',   1.2);
+ip.addParameter('I_short_pu',   1.5);
+ip.addParameter('I_abs_max_pu', 1.5);
+ip.addParameter('t_short_limit',2.0);
+ip.addParameter('m_max',        0.98);
+ip.addParameter('current_limit_mode', 'none');
 % Setpoints
 ip.addParameter('P_ref1',       5e3);
 ip.addParameter('P_ref2',       3e3);
@@ -254,6 +278,62 @@ end
 if p.f_pwr_filt > 20  % crude
     warning('gfm_design_from_specs:lpf_high', ...
         'f_pwr_filt = %.1f Hz is high; swing dynamics may oscillate.', p.f_pwr_filt);
+end
+if p.I_cont_peak <= 0 || p.I_limit_peak <= 0 || p.I_short_peak <= 0
+    warning('gfm_design_from_specs:badCurrentLimit', ...
+        'Current limits must be positive.');
+end
+if p.I_limit_peak < p.I_cont_peak
+    warning('gfm_design_from_specs:limitBelowContinuous', ...
+        'I_limit_peak %.3g A is below I_cont_peak %.3g A.', ...
+        p.I_limit_peak, p.I_cont_peak);
+end
+if p.I_short_peak < p.I_limit_peak
+    warning('gfm_design_from_specs:shortBelowLimit', ...
+        'I_short_peak %.3g A is below I_limit_peak %.3g A.', ...
+        p.I_short_peak, p.I_limit_peak);
+end
+if p.I_abs_max_peak < p.I_short_peak
+    warning('gfm_design_from_specs:absBelowShort', ...
+        'I_abs_max_peak %.3g A is below I_short_peak %.3g A.', ...
+        p.I_abs_max_peak, p.I_short_peak);
+end
+if p.m_max <= 0 || p.m_max > 1
+    warning('gfm_design_from_specs:badMMax', ...
+        'm_max should be in (0, 1]; got %.3g.', p.m_max);
+end
+mode = char(p.current_limit_mode);
+allowed_modes = {'none','virtual_impedance','voltage_reference_scaling', ...
+                 'current_reference_saturation','mode_switch'};
+if ~any(strcmp(mode, allowed_modes))
+    warning('gfm_design_from_specs:badCurrentLimitMode', ...
+        'Unknown current_limit_mode "%s"; expected none, virtual_impedance, voltage_reference_scaling, current_reference_saturation, or mode_switch.', ...
+        mode);
+end
+mod_index_nom = p.V_peak / (p.V_dc/2);
+if mod_index_nom > p.m_max
+    warning('gfm_design_from_specs:modulationHeadroom', ...
+        'Nominal modulation index %.3f exceeds m_max %.3f; voltage reference may saturate.', ...
+        mod_index_nom, p.m_max);
+end
+P_candidates = [];
+if isfield(p, 'P_ref')
+    P_candidates = [P_candidates, p.P_ref, p.P_step1, p.P_step2];
+else
+    P_candidates = [P_candidates, p.P_ref1, p.P_ref2, p.P_step1_1, p.P_step2_1, p.P_step1_2, p.P_step2_2];
+end
+P_candidates = P_candidates(isfinite(P_candidates));
+S_cmd_max = max(sqrt(P_candidates.^2 + p.Q_ref.^2));
+I_cmd_peak = S_cmd_max*sqrt(2) / (sqrt(3)*p.V_LL_rms);
+if I_cmd_peak > p.I_cont_peak
+    warning('gfm_design_from_specs:continuousCurrent', ...
+        'Largest reference/step current %.3g A exceeds I_cont_peak %.3g A; nominal sharing math is not valid in limit.', ...
+        I_cmd_peak, p.I_cont_peak);
+end
+if I_cmd_peak > p.I_limit_peak && strcmp(mode, 'none')
+    warning('gfm_design_from_specs:noCurrentLimiter', ...
+        'Largest reference/step current %.3g A exceeds I_limit_peak %.3g A but current_limit_mode is none.', ...
+        I_cmd_peak, p.I_limit_peak);
 end
 % Inner-loop bandwidth target check (derived from Kp_i/L_f)
 f_bw_i_actual = p.Kp_i / p.L_f / (2*pi);

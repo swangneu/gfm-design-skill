@@ -15,8 +15,9 @@ function pred = gfm_predict_steady_state(p, varargin)
 %
 %   The prediction is for an inductive coupling and matched droop slopes,
 %   so it is a *first-order* check. If sim disagrees by more than 5%,
-%   suspect line-Z mismatch, Q sign convention, or saturation. See
-%   ../references/multi-unit-sharing.md.
+%   suspect line-Z mismatch, Q sign convention, current limiting, or
+%   modulation saturation. See ../references/multi-unit-sharing.md and
+%   ../references/current-limiting-and-protection.md.
 
 ip = inputParser;
 ip.addParameter('load_P', [],   @(x)isempty(x) || isnumeric(x));
@@ -98,6 +99,24 @@ delta_V = Q_load * (n_q_eq + X_term) / N;
 V_pcc   = p.V_peak - delta_V;
 Q_i     = ones(N,1) * (delta_V / (n_q_eq + X_term));
 
+% --- Protection-envelope screening ---
+S_i = sqrt(P_i(:).^2 + Q_i(:).^2);
+V_ll_for_current = min(p.V_LL_rms, V_pcc * sqrt(3)/sqrt(2));
+if V_ll_for_current <= 0
+    V_ll_for_current = p.V_LL_rms;
+end
+I_peak_i = S_i * sqrt(2) / (sqrt(3) * V_ll_for_current);
+if isfield(p, 'I_cont_peak')
+    current_limit_ratio = I_peak_i / p.I_cont_peak;
+else
+    current_limit_ratio = I_peak_i / p.I_peak;
+end
+if isfield(p, 'm_max')
+    m_nominal = p.V_peak / (p.V_dc/2);
+else
+    m_nominal = NaN;
+end
+
 % --- Pack ---
 pred.law          = p.law;
 pred.topology     = ternary(is_double, 'double', 'single');
@@ -109,10 +128,24 @@ pred.P_per_inv    = P_i(:);
 pred.Q_per_inv    = Q_i(:);
 pred.P_total      = sum(P_i);
 pred.Q_total      = sum(Q_i);
+pred.S_per_inv    = S_i(:);
+pred.I_peak_per_inv = I_peak_i(:);
+pred.I_limit_ratio  = current_limit_ratio(:);
+pred.m_nominal       = m_nominal;
 pred.m_p_eq       = m_p_eq;
 pred.n_q_eq       = n_q_eq;
 pred.delta_w      = delta_w;
 pred.delta_V      = delta_V;
+
+if any(current_limit_ratio > 1)
+    warning('gfm_predict_steady_state:currentLimit', ...
+        'Predicted current exceeds the continuous limit. Linear sharing/steady-state prediction excludes current limiting.');
+end
+if ~isnan(m_nominal) && isfield(p, 'm_max') && m_nominal > p.m_max
+    warning('gfm_predict_steady_state:modulationLimit', ...
+        'Nominal modulation index %.3f exceeds m_max %.3f. Voltage saturation may invalidate the prediction.', ...
+        m_nominal, p.m_max);
+end
 
 % --- Report ---
 if opt.verbose
@@ -123,8 +156,8 @@ if opt.verbose
     fprintf('  ΔV      : %+.3f V\n', -delta_V);
     fprintf('\n');
     for k = 1:N
-        fprintf('  Inv %d:  P_ref=%6.0f W  ->  P_pred=%7.1f W   |   Q_pred=%7.1f VAR\n', ...
-            k, P_refs(k), P_i(k), Q_i(k));
+        fprintf('  Inv %d:  P_ref=%6.0f W  ->  P_pred=%7.1f W   |   Q_pred=%7.1f VAR   |   Ipk=%6.2f A\n', ...
+            k, P_refs(k), P_i(k), Q_i(k), I_peak_i(k));
     end
     fprintf('  Total :              P=%7.1f W (load %.0f)     Q=%7.1f VAR (load %.0f)\n', ...
         pred.P_total, P_load, pred.Q_total, Q_load);

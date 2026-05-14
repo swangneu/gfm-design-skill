@@ -10,6 +10,7 @@ When invoked, the skill helps you:
 - **Tune** the law-specific gains ($m_p$, $n_q$, $J$, $D$, $H$, $\eta$, $\alpha$, $\kappa$, $k_p$, virtual impedance, inner V/I PI) using analytical formulas grounded in IEEE Transactions literature.
 - **Predict** steady-state $\omega_{\mathrm{pcc}}$, $V_{\mathrm{pcc}}$, and per-inverter $P/Q$ sharing *before* running a simulation.
 - **Linearize** the closed-loop dynamics for a pole/Bode quick-look across droop / VSG / dVOC / PSC.
+- **Screen** nominal current headroom, modulation headroom, limiter assumptions, and grid-code/standards inputs without claiming compliance.
 
 Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation is left to manual sim review (or a future companion validation skill).
 
@@ -38,6 +39,8 @@ Control laws covered with self-contained math + worked examples:
 | Cross-cutting | Virtual impedance | [virtual-impedance.md](references/virtual-impedance.md) |
 | Cross-cutting | Inner V/I PI on LCL | [inner-loops-and-lcl.md](references/inner-loops-and-lcl.md) |
 | Cross-cutting | Multi-unit $P/Q$ sharing | [multi-unit-sharing.md](references/multi-unit-sharing.md) |
+| Cross-cutting | Current limiting and protection envelope | [current-limiting-and-protection.md](references/current-limiting-and-protection.md) |
+| Cross-cutting | Standards/grid-code boundary | [standards-and-grid-codes.md](references/standards-and-grid-codes.md) |
 
 Decision tree across all laws: [control-law-taxonomy.md](references/control-law-taxonomy.md). Full IEEE bibliography: [bibliography.md](references/bibliography.md).
 
@@ -120,10 +123,13 @@ p = gfm_design_from_specs( ...
         'law',         'droop',  ...    % droop | vsg | dvoc | psc
         'topology',    'single', ...    % single | double
         'droop_w_pct', 1,        ...    % 1% w-droop at rated P
-        'droop_v_pct', 5);              % 5% V-droop at rated Q
+        'droop_v_pct', 5,        ...    % 5% V-droop at rated Q
+        'I_limit_pu',  1.2,      ...    % software limiter pickup
+        'm_max',       0.98);           % modulation headroom check
 
 % 3. Predict steady state analytically (no sim needed)
 pred = gfm_predict_steady_state(p);
+disp(pred.I_peak_per_inv);
 
 % 4. Quick-look small-signal stability
 [sys, info] = gfm_smallsignal(p, 'plot', 'pzmap');
@@ -153,6 +159,8 @@ gfm-design/
 │   ├── inner-loops-and-lcl.md        Cascaded V/I PI + LCL filter sizing
 │   ├── virtual-impedance.md          Cross-cutting Q-sharing / fault-limit overlay
 │   ├── multi-unit-sharing.md         Predicted P/Q sharing math
+│   ├── current-limiting-and-protection.md
+│   ├── standards-and-grid-codes.md
 │   └── bibliography.md               IEEE Transactions citations, by family
 └── scripts/                          MATLAB tooling (all standalone)
     ├── gfm_design_from_specs.m       specs -> populated parameter struct
@@ -173,6 +181,7 @@ The MATLAB scripts in this skill have no other dependencies.
 ## Scope and verification
 
 - Output of this skill is a **design**, not evidence. A design predicts behavior; only simulation verifies it. The skill never invokes `sim()`.
+- Current-limit and grid-code fields are **assumptions and screening checks**, not implemented protection or compliance evidence. Fault behavior still requires EMT simulation, HIL/protection review, and site-specific interconnection requirements.
 - This project is **not** certified, safety-qualified, or grid-code-qualified control software. Do not use its outputs for safety-critical, protection, grid-interconnection, production hardware, or field deployment decisions without independent engineering review, simulation, hardware-in-the-loop testing, and applicable certification.
 - All numeric design formulas are grounded in IEEE Transactions papers cited in [references/bibliography.md](references/bibliography.md). Surveys and tertiary sources were used only as discovery aids.
 - The MATLAB scripts have been written from the same formulas as the reference docs but have not been independently validated against published reference results — treat the first run as a smoke test. The [`test_gfm_design.m`](scripts/test_gfm_design.m) harness exercises power-balance, sign conventions, small-signal stability per law, and the law-equivalence relations ($\mathrm{VSG} \leftrightarrow \mathrm{droop}$, $\mathrm{dVOC} \leftrightarrow \mathrm{droop}$ slopes). Run it with `addpath('scripts'); test_gfm_design`.

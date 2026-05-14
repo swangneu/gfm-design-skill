@@ -63,6 +63,11 @@ P-sharing breaks down when:
 2. **Resistive lines** (R/X > 0.5) — droop's P-ω and Q-V coupling rotates. P sees the R, ω sees R/X-mixed. Use virtual impedance to rotate back.
 3. **Saturation** — one unit hits its `m_abc` limit or its current limit. The remaining units pick up the load through their droop. This is *intentional* but breaks the linear sharing math.
 
+When saturation or current limiting is expected, switch from this analytical
+sharing model to the protection-envelope workflow in
+[current-limiting-and-protection](current-limiting-and-protection.md) and EMT
+simulation.
+
 ## Mitigations (in order of preference)
 
 ### 1. Match line impedances by adding virtual `L_v`

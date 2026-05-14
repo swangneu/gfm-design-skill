@@ -45,6 +45,12 @@ During a fault, `i` spikes. If `R_v` is large during the fault, the virtual drop
 R_v(|i|) = R_v0 + K_R · max(|i| − I_limit, 0)
 ```
 
+For abnormal-event work, pair this with
+[current-limiting-and-protection](current-limiting-and-protection.md). Virtual
+impedance is a limiter mechanism, not a complete protection scheme: it still
+needs current ratings, anti-windup, unbalanced-fault behavior, and post-fault
+recovery logic.
+
 ### 3. Decoupling P-V / Q-ω in resistive grids
 
 In low-voltage feeders with R/X > 0.5, P and Q couple to ω and V together. Adding `L_v` (or `−R_v`, the "virtual capacitance") rotates the apparent line impedance toward inductive, restoring the droop sign conventions.
@@ -86,9 +92,9 @@ Sharing error roughly proportional to the *ratio* of mismatch to total. Larger `
 
 In `gfm_params.m`:
 ```matlab
-p.R_v   = 0;        % no resistive virtual impedance unless fault limiting
-p.L_v   = 5e-3;     % H, common to both GFMs
-p.w_HP  = 2*pi*200; % HP cutoff for the differential term
+p.R_v_pcc = 0;        % no resistive virtual impedance unless fault limiting
+p.L_v_pcc = 5e-3;     % H, common to both GFMs
+p.w_HP    = 2*pi*200; % HP cutoff for the differential term
 ```
 
 In the controller code, subtract `R_v · i_d/q` (and the HP-filtered `L_v · di/dt` term) from the dq voltage reference whenever `p.R_v_pcc > 0` or `p.L_v_pcc > 0`.

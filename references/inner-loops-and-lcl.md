@@ -30,6 +30,8 @@ Pros: explicit current limit, active LCL damping, well-defined bandwidth.
 Cons: needs careful bandwidth separation, decoupling cross-terms, anti-windup.
 
 Use when: tight current limit, weak grid, active damping required, or fault-ride-through needed.
+For the limiter and anti-windup details, use
+[current-limiting-and-protection](current-limiting-and-protection.md).
 
 ## Bandwidth ladder
 
@@ -139,6 +141,21 @@ Inside the inner I loop, the cross-coupling terms `±ω · L_f · i_{q,d}` and t
 - Missing feed-forward forces the I loop to fight grid disturbances at low frequency.
 
 Most published designs include both. If you skip the inner loop (baseline that drives `m_abc` from `v_ref` directly), decoupling and feed-forward don't apply; if you add inner loops, include both.
+
+## Current-reference limiting
+
+With cascaded control, clip the current-reference vector before the inner PI:
+
+```matlab
+i_ref_mag = hypot(i_d_ref, i_q_ref);
+scale = min(1, p.I_limit_peak / max(i_ref_mag, eps));
+i_d_ref = scale * i_d_ref;
+i_q_ref = scale * i_q_ref;
+```
+
+Back-calculate or freeze the outer voltage PI when this clip is active. If the
+outer loop keeps integrating through the limit, the converter may leave the
+fault with a large stored voltage/current error and poor recovery.
 
 ## Worked example (full cascaded inner/outer on repo plant)
 

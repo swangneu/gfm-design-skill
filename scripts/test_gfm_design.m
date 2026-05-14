@@ -21,6 +21,7 @@ function test_gfm_design()
 %     T5 - inner I PI pole-zero cancellation: Kp_i/Ki_i = L_f/R_f.
 %     T6 - VSG-to-droop equivalence: 1/D_vsg matches m_p (per design choice).
 %     T7 - dVOC-to-droop slope equivalence: 2*eta/(3*V*^2) ~= m_p and 1/(3*alpha*V*) ~= n_q.
+%     T8 - protection-envelope fields are populated and prediction reports current headroom.
 
 nPass = 0;
 nFail = 0;
@@ -38,6 +39,28 @@ try
     nPass = nPass+1; fprintf('[PASS] T1: droop schema fields present\n');
 catch e
     nFail = nFail+1; fprintf(2, '[FAIL] T1: %s\n', e.message);
+end
+
+% ---- T8: protection-envelope fields + prediction current screening ----
+try
+    p = gfm_design_from_specs('law','droop','topology','single');
+    must_have = {'I_rated_peak','I_cont_peak','I_limit_peak','I_short_peak', ...
+                 'I_abs_max_peak','m_max','current_limit_mode','limit_priority'};
+    for k = 1:numel(must_have)
+        if ~isfield(p, must_have{k})
+            error('gfm_design_from_specs missing protection field: %s', must_have{k});
+        end
+    end
+    pred = gfm_predict_steady_state(p, 'verbose', false);
+    if ~isfield(pred, 'I_peak_per_inv') || ~isfield(pred, 'I_limit_ratio')
+        error('gfm_predict_steady_state missing current screening fields');
+    end
+    if any(pred.I_peak_per_inv <= 0) || any(pred.I_limit_ratio <= 0)
+        error('Current screening fields must be positive');
+    end
+    nPass = nPass+1; fprintf('[PASS] T8: protection-envelope fields and prediction current screening present\n');
+catch e
+    nFail = nFail+1; fprintf(2, '[FAIL] T8: %s\n', e.message);
 end
 
 % ---- T2: power balance + delta omega sign in gfm_predict_steady_state ----
