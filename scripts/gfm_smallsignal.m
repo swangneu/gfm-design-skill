@@ -23,7 +23,7 @@ function [sys, info] = gfm_smallsignal(p, varargin)
 %
 %   Optional name-value:
 %     'plot'   - 'none' | 'pzmap' | 'bode'  (default 'pzmap')
-%     'X_line' - per-inverter inductive coupling Ω (default ω*(L_2+L_g))
+%     'X_line' - per-inverter inductive coupling Ω (default ω*(L_f+L_2+L_g))
 
 ip = inputParser;
 ip.addParameter('plot',   'pzmap', @ischar);
@@ -32,7 +32,7 @@ ip.parse(varargin{:});
 opt = ip.Results;
 
 if isempty(opt.X_line)
-    X_line = 2*pi*p.f_n * (p.L_2 + p.L_g);
+    X_line = 2*pi*p.f_n * (p.L_f + p.L_2 + p.L_g);
 else
     X_line = opt.X_line;
 end
@@ -52,7 +52,7 @@ switch lower(p.law)
     case 'dvoc'
         sys = dvocSS(p, K_theta, K_Vmag);
     case 'psc'
-        sys = pscSS(p, K_theta, K_Vmag);
+        sys = pscSS(p, K_theta, K_Vmag, X_line);
     otherwise
         error('gfm_smallsignal:badLaw', 'Unknown p.law = %s', p.law);
 end
@@ -186,13 +186,13 @@ end
 % =====================================================================
 function sys = dvocSS(p, K_theta, K_Vmag)
 % Slow-manifold linearization of dVOC, reused via the droop equivalences:
-%   m_p_eq = eta / V*^2          (P-ω slope)
+%   m_p_eq = 2*eta/(3*V*^2)      (P-ω slope)
 %   n_q_eq = 1 / (3·alpha·V*)    (Q-V slope)
 % Power-loop "LPF" cutoff comes from the controller-internal current LPF
 % (default ~500 Hz; override if your variant uses a different cutoff).
 
 p_eq        = p;
-p_eq.m_p    = p.eta / p.V_peak^2;
+p_eq.m_p    = 2 * p.eta / (3 * p.V_peak^2);
 p_eq.n_q    = 1   / (3 * p.alpha * p.V_peak);
 if isfield(p, 'f_i_lpf') && ~isempty(p.f_i_lpf) && p.f_i_lpf > 0
     p_eq.w_pwr_filt = 2*pi*p.f_i_lpf;
@@ -204,7 +204,7 @@ end
 
 
 % =====================================================================
-function sys = pscSS(p, K_theta, K_Vmag)
+function sys = pscSS(p, K_theta, K_Vmag, X_line)
 % Power Synchronization Control. No P-LPF in the sync loop; Q-V handled via
 % an algebraic Q-V droop overlay (set p.n_q = 0 to disable).
 %
@@ -225,7 +225,6 @@ R_v   = p.R_v;
 n_q   = p.n_q;
 tau_p = 1 / p.w_pwr_filt;
 
-X_line = 2*pi*p.f_n * (p.L_2 + p.L_g);
 damp_R = k_p * R_v * K_theta / X_line;
 
 aQ = (1 + n_q*K_Vmag) / tau_p;

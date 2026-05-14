@@ -1,0 +1,4 @@
+interface:
+  display_name: "GFM Design"
+  short_description: "Design grid-forming inverter controls"
+  default_prompt: "Use $gfm-design to choose and tune a grid-forming inverter controller from my Simulink specs."

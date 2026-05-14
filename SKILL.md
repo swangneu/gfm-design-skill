@@ -1,6 +1,6 @@
 ---
 name: gfm-design
-description: Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, and multi-unit P/Q sharing. Produces a populated `gfm_params.m` parameter struct plus analytical predictions (steady-state ω/V/P/Q, small-signal poles) for the user to drop into their own Simulink model. Out of scope: post-simulation validation (manual sim review), bridge/PWM correctness, grid-following controllers.
+description: "Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, and multi-unit P/Q sharing. Produces a populated `gfm_params.m` parameter struct plus analytical predictions (steady-state ω/V/P/Q, small-signal poles) for the user to drop into their own Simulink model. Out of scope: post-simulation validation (manual sim review), bridge/PWM correctness, grid-following controllers."
 ---
 
 # GFM Design
@@ -74,7 +74,7 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 2. **Pick a control law** using `references/control-law-taxonomy.md`. Record the *why* (a sentence) so it lands in the `gfm_params.m` header.
 3. **Set the bandwidth ladder** before any gain math: `f_pwr_filt ≪ f_outer_v ≪ f_inner_i ≪ f_sw/2`, and `m_p · S_rated · f_pwr_filt ≪ f_n`. Reject specs that violate this — they will not be fixable by tuning.
 4. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
-5. **Predict steady state** with `gfm_predict_steady_state.m`. If predicted `P_total ≠ Σ P_ref_i`, the droops or line-Z assumptions are inconsistent — fix before handing off.
+5. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect any frequency/voltage deviation before handing off.
 6. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable.
 7. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
 

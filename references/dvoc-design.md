@@ -35,7 +35,7 @@ The controller's job is to integrate this ODE in real time. Output `v` is the in
 
 For small deviations around `‖v‖ = V*`, ω ≈ ω_n, P ≈ P*:
 ```
-Δω    ≈ (η / V*²) · (P* − P)         // P-ω droop slope
+Δω    ≈ (2η / (3 · V*²)) · (P* − P) // P-ω droop slope, amplitude-invariant power
 Δ‖v‖  ≈ (1 / (3 · α · V*)) · (Q* − Q) // Q-V droop slope
 ```
 
@@ -44,19 +44,19 @@ So to match a target percent-droop `(Δω%, ΔV%)`:
 m_p_target = (Δω% / 100) · ω_n / S_rated
 n_q_target = (ΔV% / 100) · V_peak / S_rated
 
-η = (3/2) · m_p_target · V_peak²      [units: 1/s · V²/W = V²·s/W = V·rad/A]
+η = (3/2) · m_p_target · V_peak²      [matches the 2/(3·V*²) dispatch-current convention]
 α = 1 / (3 · n_q_target · V_peak)     [units: 1/s]
 ```
 
 Baseline plant numbers (`gfm_design_from_specs('law','dvoc', ...)`):
-- `m_p_eq = 0.01 · ω_n / S_rated ≈ 3.77e-5`
+- `m_p_eq = 0.01 · ω_n / S_rated ≈ 3.77e-4`
 - `n_q_eq = 0.05 · V_peak / S_rated ≈ 1.96e-3`
-- `η_droop = 1.5 · m_p_eq · V_peak² ≈ 8.69`
+- `η_droop = 1.5 · m_p_eq · V_peak² ≈ 86.9`
 - `α = 1 / (3 · n_q_eq · V_peak) ≈ 0.435`
 
 ## η-scaling for paralleled units
 
-Two GFMs sharing a PCC create a diff-mode loop through `2·L_2 + 2·R_2`. At the operating point `Q=0, ‖v‖=V*`, the Φ term contributes no damping. The dispatch loop gain `η/V*²` is then competing only with `R_2` for damping the differential current.
+Two GFMs sharing a PCC create a diff-mode loop through `2·L_2 + 2·R_2`. At the operating point `Q=0, ‖v‖=V*`, the Φ term contributes no damping. The effective P-ω slope `2η/(3·V*²)` is then competing only with `R_2` for damping the differential current.
 
 `gfm_design_from_specs` de-tunes `η` automatically for the 2-inverter case via `eta_scale`:
 ```matlab
@@ -134,11 +134,11 @@ Specs:
 - 2 inverters paralleled.
 
 ```matlab
-m_p_eq      = 0.01 * p.w_n / p.S_rated;        % 3.77e-5
+m_p_eq      = 0.01 * p.w_n / p.S_rated;        % 3.77e-4
 n_q_eq      = 0.05 * p.V_peak / p.S_rated;     % 1.96e-3
 p.kappa     = pi/2;                            % inductive grid
 p.eta_scale = 0.25;                            % de-tune for 2-unit parallel
-p.eta       = p.eta_scale * 1.5 * m_p_eq * p.V_peak^2;   % ≈ 2.17
+p.eta       = p.eta_scale * 1.5 * m_p_eq * p.V_peak^2;   % ≈ 21.7
 p.alpha     = 1 / (3 * n_q_eq * p.V_peak);     % ≈ 0.435
 ```
 

@@ -113,7 +113,7 @@ Note that VSG's effective `ω_n_swing = sqrt(K_θ/J)` can be much *higher* than 
 
 Specs:
 - Same plant as droop baseline (60 Hz, 480 V LL, 10 kVA, LCL as before).
-- Match droop's 1 % ω slope: `m_p_target = 3.77e-5 rad/s/W`.
+- Match droop's 1 % ω slope: `m_p_target = 3.77e-4 rad/s/W`.
 - `H = 2 s`.
 - Q-V: 5 % proportional droop.
 
@@ -121,15 +121,15 @@ Specs:
 p.H_inertia = 2.0;
 p.J_vsg     = 2 * p.H_inertia * p.S_rated / p.w_n^2;     % ≈ 0.281 W·s²/rad
 m_p_target  = 0.01 * p.w_n / p.S_rated;
-p.D_vsg     = 1 / m_p_target;                            % ≈ 2.65e4 W·s/rad
+p.D_vsg     = 1 / m_p_target;                            % ≈ 2.65e3 W·s/rad
 p.K_q       = 0.05 * p.V_peak / p.S_rated;               % ≈ 1.96e-3 V/VAR
 ```
 
-Resulting swing (with `K_θ ≈ 67.9 kW/rad` from the droop worked example):
-- `ω_n_swing = sqrt(67900 / 0.281) ≈ 491 rad/s ≈ 78 Hz`
-- `ζ_swing = 26500 / (2 · sqrt(0.281 · 67900)) ≈ 96`
+Resulting swing (with `K_θ ≈ 101.9 kW/rad` from the droop worked example):
+- `ω_n_swing = sqrt(101900 / 0.281) ≈ 602 rad/s ≈ 96 Hz`
+- `ζ_swing = 2650 / (2 · sqrt(0.281 · 101900)) ≈ 7.8`
 
-That `ζ` is enormous because `D` matched a *slow* droop. The VSG is essentially first-order P-θ at this `H` — almost identical to droop with a much smaller `τ_p`. If the user wants real second-order swing dynamics, decouple `D` from `m_p_target` and use the `(ω_n_swing, ζ_swing)` design path above.
+That `ζ` is high because `D` matched a droop slope chosen for primary sharing. The VSG is effectively first-order P-θ at this `H`. If the user wants visible second-order swing dynamics, decouple `D` from `m_p_target` and use the `(ω_n_swing, ζ_swing)` design path above.
 
 ## Cross-references
 

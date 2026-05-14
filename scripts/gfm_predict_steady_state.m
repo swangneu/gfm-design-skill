@@ -6,7 +6,7 @@ function pred = gfm_predict_steady_state(p, varargin)
 %
 %   Works for any law (droop/VSG/dVOC/PSC) because on the slow manifold
 %   they all collapse to the same droop slopes (m_p, n_q for droop;
-%   1/D for VSG; eta/V^2 for dVOC; k_p for PSC).
+%   1/D for VSG; 2*eta/(3*V^2) for dVOC; k_p for PSC).
 %
 %   Optional name-value:
 %     'load_P'  - real load at PCC (W). Default: sum of P_ref_i (perfect setpoint)
@@ -32,7 +32,7 @@ switch lower(p.law)
     case 'vsg'
         m_p_eq = 1 / p.D_vsg;       % steady-state of swing eq
     case 'dvoc'
-        m_p_eq = p.eta / p.V_peak^2;
+        m_p_eq = 2 * p.eta / (3 * p.V_peak^2);
     case 'psc'
         m_p_eq = p.k_p;
     otherwise

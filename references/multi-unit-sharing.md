@@ -100,7 +100,7 @@ Use `gfm_predict_steady_state.m` to check the *predicted* sharing analytically b
 ## Worked example (two-unit droop, mismatched lines)
 
 Setup:
-- Two units, identical `m_p = 3.77e-5, n_q = 1.96e-3, S_rated = 10 kVA`.
+- Two units, identical `m_p = 3.77e-4, n_q = 1.96e-3, S_rated = 10 kVA`.
 - `P_ref_1 = 5 kW, P_ref_2 = 3 kW`, both `Q_ref = 0`.
 - Line: `X_1 = ω · 1 mH = 0.377 Ω`, `X_2 = ω · 1.5 mH = 0.566 Ω` (50% mismatch).
 - Load on the AC bus: roughly `P_total = 8 kW`, `Q_total = 5 kVAR`.
@@ -108,7 +108,7 @@ Setup:
 Predicted:
 ```
 Δω  = (P_load − P_ref_1 − P_ref_2) / (2 · 1/m_p)
-    = (8000 − 8000) / (2 / 3.77e-5)
+    = (8000 − 8000) / (2 / 3.77e-4)
     = 0          (P-share follows setpoints exactly)
 P_1 ≈ 5000 W,  P_2 ≈ 3000 W      // matches P_ref
 ```

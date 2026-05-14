@@ -20,7 +20,7 @@ The sync-loop gain `k_p` [rad/s/W] plays the same steady-state role as droop's `
 k_p_target = (Δω% / 100) · ω_n / S_rated
 ```
 
-For 1 % ω droop on the repo plant: `k_p ≈ 3.77e-5 rad/s/W`.
+For 1 % ω droop on the repo plant: `k_p ≈ 3.77e-4 rad/s/W`.
 
 But because PSC has no LPF, the open-loop P-θ transfer has *one* less pole than droop. The plant is roughly:
 ```
@@ -32,7 +32,7 @@ so the open-loop has a single pole at the origin (the phase integrator) and a hi
 ω_c_sync ≈ k_p · K_θ
 ```
 
-For the repo plant with `K_θ ≈ 102 kW/rad`: `ω_c_sync ≈ 3.77e-5 · 101900 ≈ 3.84 rad/s` (~ 0.6 Hz) at `k_p` matched to droop. Same order as droop's swing — at matched gain, PSC is not faster.
+For the repo plant with `K_θ ≈ 102 kW/rad`: `ω_c_sync ≈ 3.77e-4 · 101900 ≈ 38.4 rad/s` (~ 6.1 Hz) at `k_p` matched to droop. Same order as droop's swing — at matched gain, PSC is not faster.
 
 PSC's real advantage shows in **weak grids**: droop's power LPF places a pole at `−1/τ_p` that limits how high `m_p` can be pushed before the LPF pole and the LCL/grid coupling pole collide and erode phase margin. PSC has no LPF in the sync loop, so `k_p` can be raised 5–10× above the matched-droop value before its own margin limits bite (the dominant high-frequency limit becomes the LCL resonance, not a sync-internal pole). Aim for phase margin ≥ 45° at the resulting `ω_c_sync`, and add virtual-resistance damping if needed.
 
@@ -76,7 +76,7 @@ Droop : ω = ω_n − m_p · P_filt(s)                            // P_filt = P 
 PSC   : ω = ω_n + k_p · (P_ref − P)                          // direct, no filter
 ```
 
-If you set `k_p = −m_p` and drop the LPF, droop becomes PSC. The sign convention difference (PSC uses `k_p · (P_ref − P)`, droop uses `−m_p · (P − P_ref)`) is the same thing written two ways.
+If you set `k_p = m_p` and drop the LPF, droop becomes PSC. The sign convention difference (PSC uses `k_p · (P_ref − P)`, droop uses `−m_p · (P − P_ref)`) is the same thing written two ways.
 
 ## Worked example (PSC on the repo plant)
 
@@ -86,7 +86,7 @@ Specs:
 - Phase margin target ≥ 45° at `ω_c_sync`.
 
 ```matlab
-p.k_p   = 0.01 * p.w_n / p.S_rated;          % 3.77e-5 rad/s/W (matches droop slope)
+p.k_p   = 0.01 * p.w_n / p.S_rated;          % 3.77e-4 rad/s/W (matches droop slope)
 p.R_v   = 0.5;                               % virtual resistance, Ω (tune)
 p.V_ref = p.V_peak;                          % outer V-loop setpoint
 p.Q_ref = 0;

@@ -1,6 +1,6 @@
 # gfm-design
 
-A [Claude Code](https://claude.com/claude-code) skill for designing grid-forming (GFM) inverter controllers for MATLAB/Simulink + Simscape Electrical.
+A portable Codex / Claude Code skill for designing grid-forming (GFM) inverter controllers for MATLAB/Simulink + Simscape Electrical.
 
 ## What it does
 
@@ -32,21 +32,41 @@ Decision tree across all laws: [control-law-taxonomy.md](references/control-law-
 
 ## Install
 
-The skill is a folder; Claude Code auto-discovers it at startup. Pick one location:
+The skill is a folder containing `SKILL.md`, `references/`, and `scripts/`. Install the same folder in the skill directory for the agent you use.
 
-### Project-level (this repo only, commits to git)
+### Codex
 
+User-level install on Windows PowerShell:
+
+```powershell
+$root = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { "$env:USERPROFILE\.codex" }
+New-Item -ItemType Directory -Force (Join-Path $root "skills") | Out-Null
+git clone https://github.com/<owner>/gfm-design-skill (Join-Path $root "skills\gfm-design")
 ```
+
+macOS / Linux:
+
+```bash
+root="${CODEX_HOME:-$HOME/.codex}"
+mkdir -p "$root/skills"
+git clone https://github.com/<owner>/gfm-design-skill "$root/skills/gfm-design"
+```
+
+Restart Codex, then ask for a GFM design task or invoke the skill explicitly with `$gfm-design`.
+
+### Claude Code
+
+Project-level install (this repo only, commits to git):
+
+```text
 your-project/
 ├── .claude/
 │   └── skills/
-│       └── gfm-design/      ← contents of this repo (SKILL.md, references/, scripts/)
+│       └── gfm-design/      ← contents of this repo
 └── ...
 ```
 
-### User-level (available in every project)
-
-Windows (PowerShell):
+User-level install on Windows PowerShell:
 
 ```powershell
 git clone https://github.com/<owner>/gfm-design-skill "$env:USERPROFILE\.claude\skills\gfm-design"
@@ -58,11 +78,15 @@ macOS / Linux:
 git clone https://github.com/<owner>/gfm-design-skill ~/.claude/skills/gfm-design
 ```
 
-### Verify
+Restart Claude Code, then type `/gfm-design`; the skill name should appear in the slash-command list. Claude Code can also invoke it automatically when you describe a GFM design task.
 
-Restart Claude Code, then type `/gfm-design` — the skill name should appear in the slash-command list. Claude will also invoke it automatically when you describe a GFM design task (per the trigger conditions in `SKILL.md`).
+### Compatibility notes
 
-## Use without Claude Code
+- `SKILL.md` is the shared skill manifest used by both Codex and Claude Code.
+- `agents/openai.yaml` is Codex UI metadata. Claude Code can ignore it safely.
+- The MATLAB scripts and reference docs are standalone and do not depend on either agent.
+
+## Use without a skill runner
 
 All MATLAB scripts under [scripts/](scripts/) are standalone and run from any MATLAB ≥ R2024b (`gfm_smallsignal` additionally needs Control System Toolbox):
 
@@ -78,7 +102,7 @@ The reference markdown files under [references/](references/) are self-contained
 
 ```matlab
 % 1. Add the scripts to your path
-addpath('.claude/skills/gfm-design/scripts');
+addpath('<path-to-gfm-design>/scripts');
 
 % 2. Design from specs (defaults match a 60 Hz, 480 V LL, 10 kVA plant)
 p = gfm_design_from_specs( ...
@@ -104,7 +128,9 @@ disp(info.poles);
 
 ```
 gfm-design/
-├── SKILL.md                          Claude Code skill manifest (triggers, workflow, scope)
+├── SKILL.md                          Shared Codex/Claude skill manifest
+├── agents/
+│   └── openai.yaml                   Codex UI metadata
 ├── README.md                         This file
 ├── LICENSE                           MIT
 ├── references/                       Self-contained design notes (no external deps)

@@ -34,7 +34,7 @@ Typical values:
 - `ΔV% = 5` (relaxed because Q-sharing is naturally worse than P-sharing)
 
 Baseline plant (60 Hz, 480 V LL, 10 kVA) used throughout these docs:
-- `m_p = 0.01 · 2π·60 / 10000 ≈ 3.77e-5 rad/s/W`
+- `m_p = 0.01 · 2π·60 / 10000 ≈ 3.77e-4 rad/s/W`
 - `n_q = 0.05 · 391.9 / 10000 ≈ 1.96e-3 V/VAR`
 
 ## Swing dynamics from the power LPF
@@ -59,11 +59,11 @@ m_p     given (% droop spec)
 f_pwr_filt = 1 / (2π · τ_p)
 ```
 
-Repo defaults: `f_pwr_filt = 5 Hz` → `τ_p ≈ 31.8 ms`. With repo's `m_p ≈ 3.77e-5` and `X_total ≈ 2.26 Ω` (i.e. `∂P/∂θ ≈ 1.5 · V_peak² / X_total ≈ 101.9 kW/rad`):
-- `ω_swing ≈ sqrt(3.77e-5 · 101900 / 0.0318) ≈ 11.0 rad/s` (≈ 1.75 Hz)
-- `ζ_swing ≈ 1 / (2 · sqrt(3.77e-5 · 101900 · 0.0318)) ≈ 1.43`
+Repo defaults: `f_pwr_filt = 5 Hz` → `τ_p ≈ 31.8 ms`. With repo's `m_p ≈ 3.77e-4` and `X_total ≈ 2.26 Ω` (i.e. `∂P/∂θ ≈ 1.5 · V_peak² / X_total ≈ 101.9 kW/rad`):
+- `ω_swing ≈ sqrt(3.77e-4 · 101900 / 0.0318) ≈ 34.7 rad/s` (≈ 5.53 Hz)
+- `ζ_swing ≈ 1 / (2 · sqrt(3.77e-4 · 101900 · 0.0318)) ≈ 0.45`
 
-Overdamped, slow swing — conservative repo defaults. If you want an underdamped swing (ζ ≈ 0.5–0.7) for a faster step response, increase `f_pwr_filt` toward the bandwidth-ladder upper bound (see below). At `f_pwr_filt = 1 Hz` (τ_p ≈ 159 ms), the same plant gives ζ ≈ 0.64.
+The default is a lightly damped swing that remains well below the planned 100 Hz outer voltage loop. Increasing `f_pwr_filt` raises both swing bandwidth and damping; lowering it slows the swing and reduces damping. Recheck the bandwidth ladder after changing it.
 
 ## Bandwidth ladder (necessary, not sufficient)
 
@@ -108,13 +108,13 @@ Specs:
 - LCL: L_1 = 4 mH, R_1 = 50 mΩ, C_f = 5 µF, R_d = 5 Ω, L_2 = 1 mH, R_2 = 50 mΩ
 - Grid Z: L_g = 1 mH, R_g = 0.1 Ω → SCR ≈ V²/(ω · L_g · S) ≈ 1700 (stiff grid)
 - Droop: 1 % ω at rated P, 5 % V at rated Q
-- Resulting swing: `f_swing ≈ 1.75 Hz`, `ζ ≈ 1.43` (overdamped — conservative)
+- Resulting swing: `f_swing ≈ 5.53 Hz`, `ζ ≈ 0.45` (lightly damped, below the outer voltage loop)
 
 Result (exact formulas):
 ```matlab
-p.m_p        = 0.01 * 2*pi*60 / 10e3;        % 3.7699e-5 rad/s/W
+p.m_p        = 0.01 * 2*pi*60 / 10e3;        % 3.7699e-4 rad/s/W
 p.n_q        = 0.05 * sqrt(2)*480/sqrt(3) / 10e3;  % 1.9596e-3 V/VAR
-p.f_pwr_filt = 5;                            % Hz  ->  ζ ≈ 1.43 at K_θ = 1.5·V²/X
+p.f_pwr_filt = 5;                            % Hz  ->  ζ ≈ 0.45 at K_θ = 1.5·V²/X
 ```
 
 ## Cross-references

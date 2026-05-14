@@ -117,7 +117,7 @@ Design rules of thumb (Liserre/Blaabjerg/Hansen 2005, IEEE TIA):
 
 Repo plant:
 - `L_eq = 4·1/(4+1) = 0.8 mH`, `f_res = 1/(2π·sqrt(0.8e-3 · 5e-6)) ≈ 2.52 kHz` ✓
-- `C_f = 5 µF` → reactive at 60 Hz: `0.5 · ω · C · V_LL² ≈ 217 VAR` = 2.2 % of 10 kVA ✓
+- `C_f = 5 µF` → reactive at 60 Hz: `ω · C · V_LL² ≈ 434 VAR` = 4.3 % of 10 kVA ✓
 - `L_f + L_2 = 5 mH`, `Z_base = 480²/10000 = 23 Ω`, `pu = ω·L/Z_base = 8.2 %` ✓
 - `R_d = 5 Ω`, recommended `≈ 1/(3·2π·2520·5e-6) ≈ 4.2 Ω` ✓
 

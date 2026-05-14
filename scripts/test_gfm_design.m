@@ -20,7 +20,7 @@ function test_gfm_design()
 %     T4 — droop swing dynamics are in a physically sensible band.
 %     T5 — inner I PI pole-zero cancellation: Kp_i/Ki_i = L_f/R_f.
 %     T6 — VSG ↔ droop equivalence: 1/D_vsg matches m_p (per design choice).
-%     T7 — dVOC ↔ droop slope equivalence: η/V*² ≈ m_p and 1/(3αV*) ≈ n_q.
+%     T7 — dVOC ↔ droop slope equivalence: 2η/(3V*²) ≈ m_p and 1/(3αV*) ≈ n_q.
 
 nPass = 0;
 nFail = 0;
@@ -98,8 +98,8 @@ try
     zeta    = 1 / (2 * sqrt(p.m_p * K_theta * tau_p));
     fprintf('       droop swing: ω_n = %.2f rad/s (%.2f Hz), ζ = %.2f\n', ...
         omega_n, omega_n/(2*pi), zeta);
-    if ~(omega_n > 5 && omega_n < 20)
-        error('ω_swing %.2f rad/s outside expected 5–20 rad/s band', omega_n);
+    if ~(omega_n > 20 && omega_n < 60)
+        error('ω_swing %.2f rad/s outside expected 20–60 rad/s band', omega_n);
     end
     if ~(zeta > 0.3 && zeta < 5)
         error('ζ %.2f outside expected 0.3–5 band', zeta);
@@ -145,17 +145,17 @@ end
 % ---- T7: dVOC slope equivalence ----
 try
     p = gfm_design_from_specs('law','dvoc','topology','double');
-    m_p_eq = p.eta   / p.V_peak^2;
+    m_p_eq = 2 * p.eta / (3 * p.V_peak^2);
     n_q_eq = 1 / (3 * p.alpha * p.V_peak);
     % With eta_scale = 0.25 (double topology default), m_p_eq = 0.25·m_p_target
     if abs(m_p_eq - p.eta_scale * p.m_p) / p.m_p > 1e-9
-        error('dVOC m_p_eq mismatch: η/V² = %.6g vs eta_scale·m_p = %.6g', ...
+        error('dVOC m_p_eq mismatch: 2η/(3V²) = %.6g vs eta_scale·m_p = %.6g', ...
             m_p_eq, p.eta_scale*p.m_p);
     end
     if abs(n_q_eq - p.n_q) / p.n_q > 1e-9
         error('dVOC n_q_eq mismatch: 1/(3αV) = %.6g vs n_q = %.6g', n_q_eq, p.n_q);
     end
-    nPass = nPass+1; fprintf('[PASS] T7: dVOC slope equivalences hold (η/V² ~ m_p, 1/(3αV) = n_q)\n');
+    nPass = nPass+1; fprintf('[PASS] T7: dVOC slope equivalences hold (2η/(3V²) ~ m_p, 1/(3αV) = n_q)\n');
 catch e
     nFail = nFail+1; fprintf(2, '[FAIL] T7: %s\n', e.message);
 end

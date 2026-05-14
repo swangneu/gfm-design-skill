@@ -80,7 +80,7 @@ K(v)   = (2/(3·V*²)) · [P*  Q*; −Q*  P*] · v        // dispatch current re
 R(κ)   = [cos κ  −sin κ; sin κ  cos κ];  κ = π/2 (inductive grid)
 ```
 
-- **Slow-manifold equivalence**: small-signal P-ω slope is `Δω = (η/V*²) · (P* − P)`; Q-V slope is `Δ|v| = (1/(3·α·V*)) · (Q* − Q)`. Use these to match a target droop %.
+- **Slow-manifold equivalence**: with the `2/(3·V*²)` dispatch-current convention above, small-signal P-ω slope is `Δω = (2η/(3·V*²)) · (P* − P)`; Q-V slope is `Δ|v| = (1/(3·α·V*)) · (Q* − Q)`. Use these to match a target droop %.
 - **Pick when**: rigorous synchronization guarantees needed (Lyapunov stability under arbitrary topology); academic study.
 - **Weakness**: when paralleled at `Q=0, ‖v‖=V*` the diff-mode is weakly damped — scale `η` down (typical: `eta_scale = 0.25` for two paralleled units) or add a current-feedback LPF.
 - **Source**: Colombino, Groß, Brouillon, Dörfler, *Global phase and magnitude synchronization of coupled oscillators with application to the control of grid-forming power inverters*, IEEE TAC 64(11), 2019. Foundational VOC: Johnson, Dhople, Hamadeh, Krein, *Synchronization of nonlinear oscillators in an LTI electrical power network*, IEEE TCS-I 61(3), 2014.
