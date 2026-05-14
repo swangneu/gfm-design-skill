@@ -67,11 +67,22 @@ end
 Q_load = opt.load_Q;
 
 % --- P-sharing: common Δω across all units ---
-% P_i = P_ref_i + Δω/m_p_eq_i ; ΣP_i = P_load
-% Assuming all units share m_p_eq (the design path assumes this):
-delta_w = (sum(P_refs) - P_load) / (N / m_p_eq);
-P_i = P_refs + delta_w / m_p_eq;
+% Droop: ω = ω_n − m_p·(P − P_ref). Steady state ω is common, so
+%   P_i = P_ref_i + (ω_n − ω) / m_p_i.
+% Sum and impose ΣP_i = P_load (units share m_p_eq in the design path):
+%   Δω ≡ ω_n − ω = (P_load − ΣP_ref) / Σ(1/m_p) = m_p_eq·(P_load − ΣP_ref)/N
+% Overload (P_load > ΣP_ref) → Δω > 0 → frequency drops → each unit picks up
+% more than its setpoint. Sign check is the invariant that breaks if this
+% formula goes wrong; see references/multi-unit-sharing.md.
+delta_w   = (P_load - sum(P_refs)) / (N / m_p_eq);
+P_i       = P_refs + delta_w / m_p_eq;
 omega_pcc = p.w_n - delta_w;        % all units settle at same ω
+
+% Invariant: ΣP_i must equal P_load to within floating-point tolerance.
+% A failure here means the sign / formula above drifted again.
+assert(abs(sum(P_i) - P_load) < 1e-6 * max(1, abs(P_load)), ...
+    'gfm_predict_steady_state:powerBalance', ...
+    'P-sharing invariant broken: ΣP_i=%g, P_load=%g', sum(P_i), P_load);
 
 % --- Q-sharing: PCC voltage common to all units ---
 % Q_i = (V_peak - V_pcc) / (n_q_eq + X_i/V_peak)

@@ -15,15 +15,17 @@ P_total  =  Σ P_ref_i  +  (ω_n − ω) · Σ 1/m_p_i
         =  P_load  (steady state)
 ```
 
-So the common Δω that the units settle at is:
+Let `Δω = ω_n − ω` (frequency drop from rated). Solving:
 ```
-Δω  =  (Σ P_ref_i − P_load) / Σ 1/m_p_i
+Δω  =  (P_load − Σ P_ref_i) / Σ 1/m_p_i
 ```
 
 and each unit takes:
 ```
 P_i  =  P_ref_i  +  (Δω / m_p_i)
 ```
+
+Check: under overload (`P_load > Σ P_ref`), `Δω > 0`, frequency drops below rated, and each unit picks up *more* than its setpoint. That matches the physical droop behavior — every doubt about a sign in this file resolves to this check.
 
 For matched `m_p`: each unit's share of *load mismatch* is proportional to `1/m_p_i` (= proportional to `S_rated_i` if you sized droop per unit). **P-sharing is good** because frequency is a global variable — every unit sees the same `ω` regardless of line impedance.
 
@@ -105,7 +107,7 @@ Setup:
 
 Predicted:
 ```
-Δω  = (P_ref_1 + P_ref_2 − P_load) / (2 · 1/m_p)
+Δω  = (P_load − P_ref_1 − P_ref_2) / (2 · 1/m_p)
     = (8000 − 8000) / (2 / 3.77e-5)
     = 0          (P-share follows setpoints exactly)
 P_1 ≈ 5000 W,  P_2 ≈ 3000 W      // matches P_ref

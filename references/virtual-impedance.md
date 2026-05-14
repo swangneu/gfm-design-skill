@@ -69,7 +69,7 @@ where `φ = atan2(R_line, X_line)`. Virtual impedance achieves the same outcome 
 - Inner V/I loops already in place with `R_v` baked in — don't double-count.
 - Fault behavior is handled by hardware (e.g. crowbar circuit) — virtual impedance becomes redundant.
 
-## Worked example (Q-sharing fix for `double/`)
+## Worked example (Q-sharing fix for two paralleled GFMs)
 
 Setup:
 - Two GFMs at PCC, same droop slopes, same `S_rated`.
@@ -91,7 +91,7 @@ p.L_v   = 5e-3;     % H, common to both GFMs
 p.w_HP  = 2*pi*200; % HP cutoff for the differential term
 ```
 
-The scaffold generator inserts the virtual-impedance subtraction inside the controller code when `p.R_v > 0` or `p.L_v > 0`.
+In the controller code, subtract `R_v · i_d/q` (and the HP-filtered `L_v · di/dt` term) from the dq voltage reference whenever `p.R_v_pcc > 0` or `p.L_v_pcc > 0`.
 
 ## Cross-references
 

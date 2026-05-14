@@ -33,11 +33,9 @@ Typical values:
 - `Δω% = 1` (matches synchronous-generator practice; tighter sharing, but slower swing)
 - `ΔV% = 5` (relaxed because Q-sharing is naturally worse than P-sharing)
 
-For the repo's 60 Hz, 480 V LL, 10 kVA case:
+Baseline plant (60 Hz, 480 V LL, 10 kVA) used throughout these docs:
 - `m_p = 0.01 · 2π·60 / 10000 ≈ 3.77e-5 rad/s/W`
 - `n_q = 0.05 · 391.9 / 10000 ≈ 1.96e-3 V/VAR`
-
-These match `single/gfm_params.m` and `double/gfm_params.m`.
 
 ## Swing dynamics from the power LPF
 
@@ -46,7 +44,7 @@ The closed-loop P-θ dynamics around a stiff grid:
 τ_p · d²θ/dt² + dθ/dt + m_p · (∂P/∂θ) · θ = m_p · P_ref
 ```
 
-with `∂P/∂θ ≈ V² / X_total` for an inductive coupling and `X_total = ω_n · (L_f + L_2 + L_g)`.
+with `∂P/∂θ ≈ 1.5 · V_peak² / X_total` for an inductive coupling and `X_total = ω_n · (L_f + L_2 + L_g)`. The factor 1.5 comes from amplitude-invariant Park three-phase power (`P = 1.5·V_d·I_d` and `P = 1.5·V_peak²·sinδ/X` at the operating point). Keep this consistent with [inner-loops-and-lcl.md](inner-loops-and-lcl.md) and `gfm_smallsignal.m` — all three must use the same convention.
 
 The undamped natural frequency and damping:
 ```
@@ -61,11 +59,11 @@ m_p     given (% droop spec)
 f_pwr_filt = 1 / (2π · τ_p)
 ```
 
-Repo defaults: `f_pwr_filt = 5 Hz` → `τ_p ≈ 31.8 ms`. With repo's `m_p ≈ 3.77e-5` and `X_total ≈ 2.26 Ω` (i.e. `∂P/∂θ ≈ V_peak² / X_total ≈ 67.9 kW/rad`):
-- `ω_swing ≈ sqrt(3.77e-5 · 67900 / 0.0318) ≈ 9.0 rad/s` (≈ 1.4 Hz)
-- `ζ_swing ≈ 1 / (2 · sqrt(3.77e-5 · 67900 · 0.0318)) ≈ 0.51`
+Repo defaults: `f_pwr_filt = 5 Hz` → `τ_p ≈ 31.8 ms`. With repo's `m_p ≈ 3.77e-5` and `X_total ≈ 2.26 Ω` (i.e. `∂P/∂θ ≈ 1.5 · V_peak² / X_total ≈ 101.9 kW/rad`):
+- `ω_swing ≈ sqrt(3.77e-5 · 101900 / 0.0318) ≈ 11.0 rad/s` (≈ 1.75 Hz)
+- `ζ_swing ≈ 1 / (2 · sqrt(3.77e-5 · 101900 · 0.0318)) ≈ 1.43`
 
-Well-damped, slow swing — the repo numbers are sound.
+Overdamped, slow swing — conservative repo defaults. If you want an underdamped swing (ζ ≈ 0.5–0.7) for a faster step response, increase `f_pwr_filt` toward the bandwidth-ladder upper bound (see below). At `f_pwr_filt = 1 Hz` (τ_p ≈ 159 ms), the same plant gives ζ ≈ 0.64.
 
 ## Bandwidth ladder (necessary, not sufficient)
 
@@ -103,20 +101,20 @@ The repo uses amplitude-invariant Park with `Q_inst = 1.5 · (V_q · I_d − V_d
 - Need formal sync guarantees independent of topology — use dVOC.
 - Operating at SCR < 2 — droop's reactive coupling becomes a P-V coupling and tuning gets unstable. Use PSC.
 
-## Worked example (matches `single/gfm_params.m`)
+## Worked example (baseline 60 Hz / 480 V / 10 kVA plant)
 
 Specs:
 - 60 Hz, 480 V LL, 10 kVA, V_dc = 800 V
 - LCL: L_1 = 4 mH, R_1 = 50 mΩ, C_f = 5 µF, R_d = 5 Ω, L_2 = 1 mH, R_2 = 50 mΩ
 - Grid Z: L_g = 1 mH, R_g = 0.1 Ω → SCR ≈ V²/(ω · L_g · S) ≈ 1700 (stiff grid)
 - Droop: 1 % ω at rated P, 5 % V at rated Q
-- Swing target: `f_swing ≈ 1.4 Hz`, `ζ ≈ 0.5`
+- Resulting swing: `f_swing ≈ 1.75 Hz`, `ζ ≈ 1.43` (overdamped — conservative)
 
 Result (exact formulas):
 ```matlab
 p.m_p        = 0.01 * 2*pi*60 / 10e3;        % 3.7699e-5 rad/s/W
 p.n_q        = 0.05 * sqrt(2)*480/sqrt(3) / 10e3;  % 1.9596e-3 V/VAR
-p.f_pwr_filt = 5;                            % Hz  ->  ζ ≈ 0.5 at the computed swing
+p.f_pwr_filt = 5;                            % Hz  ->  ζ ≈ 1.43 at K_θ = 1.5·V²/X
 ```
 
 ## Cross-references

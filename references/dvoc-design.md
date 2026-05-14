@@ -48,7 +48,7 @@ n_q_target = (ΔV% / 100) · V_peak / S_rated
 α = 1 / (3 · n_q_target · V_peak)     [units: 1/s]
 ```
 
-Repo's `double_dvoc/gfm_params.m`:
+Baseline plant numbers (`gfm_design_from_specs('law','dvoc', ...)`):
 - `m_p_eq = 0.01 · ω_n / S_rated ≈ 3.77e-5`
 - `n_q_eq = 0.05 · V_peak / S_rated ≈ 1.96e-3`
 - `η_droop = 1.5 · m_p_eq · V_peak² ≈ 8.69`
@@ -58,7 +58,7 @@ Repo's `double_dvoc/gfm_params.m`:
 
 Two GFMs sharing a PCC create a diff-mode loop through `2·L_2 + 2·R_2`. At the operating point `Q=0, ‖v‖=V*`, the Φ term contributes no damping. The dispatch loop gain `η/V*²` is then competing only with `R_2` for damping the differential current.
 
-The repo de-tunes `η` for the 2-inverter case:
+`gfm_design_from_specs` de-tunes `η` automatically for the 2-inverter case via `eta_scale`:
 ```matlab
 p.eta_scale = 0.25;
 p.eta       = p.eta_scale * 1.5 * m_p_eq * V_peak^2;
@@ -104,7 +104,7 @@ This is `‖v‖² = V*²` → `Φ = 0` → no initial magnitude correction. The
 
 ## Current feedback LPF
 
-`i` (the measured grid-side current) carries PWM ripple. Without an LPF, the ripple enters the dispatch loop and the oscillator chases it. The repo uses an internal first-order LPF at 500 Hz:
+`i` (the measured grid-side current) carries PWM ripple. Without an LPF, the ripple enters the dispatch loop and the oscillator chases it. Typical fix: a first-order LPF at 500 Hz inside the controller code:
 ```
 α_i = 2π · 500 · Ts / (1 + 2π · 500 · Ts)
 i_αf ← i_αf + α_i · (i_α − i_αf)
@@ -126,7 +126,7 @@ Set the cutoff above the swing frequency (~tens of Hz) but well below `f_sw/2`.
 - Mixed R/X line with unknown `κ` and no online adaptation — droop or PSC degrades gracefully; dVOC does not.
 - Hard real-time on a low-end controller — dVOC's per-step trig and matrix ops are heavier than droop. Profile first.
 
-## Worked example (matches `double_dvoc/gfm_params.m`)
+## Worked example (baseline plant, two paralleled dVOC units)
 
 Specs:
 - Same plant as droop/VSG baselines.

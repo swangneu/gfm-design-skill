@@ -4,7 +4,7 @@ Virtual synchronous machine family. Adds an explicit swing equation, giving emul
 
 ## Swing-equation VSG
 
-State equations (matches `double_vsg/`):
+State equations:
 ```
 J · dω/dt = P_ref − P − D · (ω − ω_n)        // mechanical swing
 dθ/dt     = ω                                // phase integration
@@ -26,7 +26,7 @@ Typical `H`:
 - 0.5 – 2 s for low-inertia "synthetic inertia" services
 - > 5 s is unusual for an inverter (energy buffer becomes a sizing constraint)
 
-Repo's `double_vsg`: `H = 2.0 s` → `J = 2·2·10000/(2π·60)² ≈ 0.281 W·s²/rad`.
+Baseline plant with `H = 2.0 s`: `J = 2·2·10000/(2π·60)² ≈ 0.281 W·s²/rad`.
 
 ## Equivalence to droop + LPF
 
@@ -54,7 +54,7 @@ D_vsg      = 1 / m_p_target;           % matches droop slope
 J_vsg      = 2 * H * S_rated / w_n^2;  % choose H separately
 ```
 
-This is exactly the formula `double_vsg/gfm_params.m` uses.
+This is exactly what `gfm_design_from_specs.m` writes into `p.D_vsg` and `p.J_vsg` when `'law','vsg'`.
 
 ## Design from desired swing dynamics
 
@@ -78,7 +78,7 @@ If the resulting `D` violates a droop spec (e.g. `1/D ≠ m_p_target`), the iner
 
 Two common choices:
 
-**Option 1 — proportional droop** (`double_vsg/` uses this):
+**Option 1 — proportional droop** (`gfm_design_from_specs` default for `'law','vsg'`):
 ```
 |V_ref| = V_peak − K_q · (Q − Q_ref)
 K_q     = (ΔV%) · V_peak / S_rated
@@ -109,7 +109,7 @@ Note that VSG's effective `ω_n_swing = sqrt(K_θ/J)` can be much *higher* than 
 - **`ω_n_swing` close to LCL resonance** → swing transient excites the LCL. Increase passive damping or move the resonance.
 - **Synchronverter without anti-windup** → flux integrator saturates on transient and the controller never recovers.
 
-## Worked example (matches `double_vsg/gfm_params.m`)
+## Worked example (baseline plant, two paralleled VSGs)
 
 Specs:
 - Same plant as droop baseline (60 Hz, 480 V LL, 10 kVA, LCL as before).

@@ -2,13 +2,11 @@
 
 A decision map across the three IEEE-recognized GFM families plus their commonly seen variants. Each entry lists the differential equation that defines the law, when to pick it, what its weakness is, and which IEEE source pins it down.
 
-The repo's existing variants are flagged with → folder name.
-
 ## Family A — Droop-based
 
 Direct mapping of grid-following alternator behavior. Power flows act through angle/frequency droop and voltage/reactive droop. State-of-the-art baseline.
 
-### A1. Standard P-ω / Q-V droop  → `single/`, `double/`
+### A1. Standard P-ω / Q-V droop
 
 ```
 dθ/dt = ω
@@ -42,7 +40,7 @@ Variants that pre-filter or feed-forward the active-power reference. Rarely the 
 
 Embeds an explicit swing equation. Behaves like a synchronous generator from the grid's terminals.
 
-### B1. Swing-equation VSG  → `double_vsg/`
+### B1. Swing-equation VSG
 
 ```
 J · dω/dt = P_ref − P − D · (ω − ω_n)        // mechanical swing
@@ -71,7 +69,7 @@ Variants that change `J` and `D` online (e.g. `J ∝ |dω/dt|`). Useful in publi
 
 Nonlinear oscillator with a stable limit cycle. Synchronizes by physics, not by power-feedback control.
 
-### C1. Dispatchable virtual oscillator control (dVOC)  → `double_dvoc/`
+### C1. Dispatchable virtual oscillator control (dVOC)
 
 α-β frame state `v = [v_α; v_β]`:
 
@@ -84,7 +82,7 @@ R(κ)   = [cos κ  −sin κ; sin κ  cos κ];  κ = π/2 (inductive grid)
 
 - **Slow-manifold equivalence**: small-signal P-ω slope is `Δω = (η/V*²) · (P* − P)`; Q-V slope is `Δ|v| = (1/(3·α·V*)) · (Q* − Q)`. Use these to match a target droop %.
 - **Pick when**: rigorous synchronization guarantees needed (Lyapunov stability under arbitrary topology); academic study.
-- **Weakness**: when paralleled at `Q=0, ‖v‖=V*` the diff-mode is weakly damped — scale `η` down (your repo uses `eta_scale = 0.25`) or add a current-feedback LPF.
+- **Weakness**: when paralleled at `Q=0, ‖v‖=V*` the diff-mode is weakly damped — scale `η` down (typical: `eta_scale = 0.25` for two paralleled units) or add a current-feedback LPF.
 - **Source**: Colombino, Groß, Brouillon, Dörfler, *Global phase and magnitude synchronization of coupled oscillators with application to the control of grid-forming power inverters*, IEEE TAC 64(11), 2019. Foundational VOC: Johnson, Dhople, Hamadeh, Krein, *Synchronization of nonlinear oscillators in an LTI electrical power network*, IEEE TCS-I 61(3), 2014.
 
 ### C2. Unified VOC, dead-zone VOC

@@ -24,17 +24,17 @@ For 1 % ω droop on the repo plant: `k_p ≈ 3.77e-5 rad/s/W`.
 
 But because PSC has no LPF, the open-loop P-θ transfer has *one* less pole than droop. The plant is roughly:
 ```
-P(θ) / θ  ≈  1.5 · V_d · V_pcc / X_total   (kW/rad, linearized)
+K_θ = ∂P/∂θ ≈ 1.5 · V_d · V_pcc / X_total   (W/rad, linearized)
 ```
 
 so the open-loop has a single pole at the origin (the phase integrator) and a high-frequency lag from the LCL. The closed-loop crossover is approximately:
 ```
-ω_c_sync ≈ k_p · (∂P/∂θ)
+ω_c_sync ≈ k_p · K_θ
 ```
 
-For the repo plant: `ω_c_sync ≈ 3.77e-5 · 67900 ≈ 2.56 rad/s` (~ 0.4 Hz). That's *slower* than droop's swing — PSC's speed advantage comes from stability margin, not raw crossover.
+For the repo plant with `K_θ ≈ 102 kW/rad`: `ω_c_sync ≈ 3.77e-5 · 101900 ≈ 3.84 rad/s` (~ 0.6 Hz) at `k_p` matched to droop. Same order as droop's swing — at matched gain, PSC is not faster.
 
-To go faster, raise `k_p` until margins start to erode. Aim for phase margin ≥ 45° at `ω_c_sync`; this typically caps `k_p` at 5 – 10× the droop value before the LCL pole takes margin.
+PSC's real advantage shows in **weak grids**: droop's power LPF places a pole at `−1/τ_p` that limits how high `m_p` can be pushed before the LPF pole and the LCL/grid coupling pole collide and erode phase margin. PSC has no LPF in the sync loop, so `k_p` can be raised 5–10× above the matched-droop value before its own margin limits bite (the dominant high-frequency limit becomes the LCL resonance, not a sync-internal pole). Aim for phase margin ≥ 45° at the resulting `ω_c_sync`, and add virtual-resistance damping if needed.
 
 ## Damping
 
@@ -94,11 +94,7 @@ p.Q_ref = 0;
 p.n_q   = 0.05 * p.V_peak / p.S_rated;
 ```
 
-This repo does not currently have a PSC variant. To create one, call:
-```matlab
-gfm_generate_variant('single_psc', 'law', 'psc', 'topology', 'single')
-```
-The scaffold generator will emit the PSC controller code from a template.
+Plug the resulting `p` struct into a Simulink GFM model whose controller implements the PSC equations at the top of this doc.
 
 ## Cross-references
 

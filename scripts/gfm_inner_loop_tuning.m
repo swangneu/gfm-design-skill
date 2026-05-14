@@ -14,11 +14,11 @@ function [Kp_i, Ki_i, Kp_v, Ki_v] = gfm_inner_loop_tuning(p, varargin)
 %             Then T(s) = Kp/(L_f*s + Kp) → bandwidth = Kp/L_f.
 %             Kp_i = w_bw_i * L_f ;  Ki_i = w_bw_i * R_f.
 %     Outer V: heuristic; assumes inner I closed at f_bw_i, plant ≈ 1/(C_f*s).
-%             Kp_v = w_bw_v * C_f * scale ;  Ki_v = Kp_v * w_bw_v / 5.
-%
-%   The outer-V scale factor depends on per-unit conventions; the default
-%   here is calibrated for the repo's 480 V / 10 kVA plant. Re-tune via
-%   gfm_smallsignal.m if accuracy matters.
+%             Kp_v = w_bw_v * C_f * V_peak ;  Ki_v = Kp_v * w_bw_v / 5.
+%             The V_peak factor scales the gain with the operating voltage
+%             so the same form ports across plants. Always re-verify on
+%             Bode (use 'plot', true) for plants far from the 480 V /
+%             10 kVA baseline.
 
 ip = inputParser;
 ip.addParameter('f_bw_i', 1000, @(x)isnumeric(x)&&x>0);
@@ -42,8 +42,8 @@ Kp_i   = w_bw_i * p.L_f;
 Ki_i   = w_bw_i * p.R_f;
 
 w_bw_v = 2*pi*opt.f_bw_v;
-Kp_v   = w_bw_v * p.C_f * 100;       % heuristic scale
-Ki_v   = Kp_v * w_bw_v / 5;
+Kp_v   = w_bw_v * p.C_f * p.V_peak;  % gain scales with operating voltage
+Ki_v   = Kp_v * w_bw_v / 5;          % PI zero one decade below crossover
 
 % --- Optional Bode of inner I plant + closed loop ---
 if opt.plot

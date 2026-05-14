@@ -31,8 +31,11 @@ function p = gfm_design_from_specs(varargin)
 %   Setpoints (per inverter):
 %     'P_ref1','P_ref2','Q_ref'                          (defaults: 5e3,3e3,0)
 %
-%   Returns the same field schema as the repo's existing gfm_params.m files,
-%   plus law-specific fields. Use gfm_generate_variant to write it to disk.
+%   Returns a struct with the field names a typical GFM Simulink model
+%   expects (V_dc, L_f, R_f, C_f, R_d, L_2, R_2, m_p, n_q, Kp_i, Ki_i,
+%   Kp_v, Ki_v, ...) plus law-specific fields. Plug it into your own
+%   `gfm_params.m` (or assign in the base workspace) before building/
+%   simulating your Simulink model.
 
 opt = parseOptions(varargin{:});
 
@@ -217,9 +220,16 @@ w_bw_i = 2*pi*f_bw_i;
 Kp_i   = w_bw_i * p.L_f;
 Ki_i   = w_bw_i * p.R_f;
 
-% Outer V loop on the capacitor branch. Heuristic scaling; verify on Bode.
+% Outer V loop on the capacitor branch. Heuristic: assume the inner I loop
+% is closed at f_bw_i with unity gain, so the V plant seen by the outer
+% loop is ≈ 1/(C_f·s). For a -20 dB/dec crossover at w_bw_v with a current
+% output, K_p,v = w_bw_v · C_f. Scale by V_peak so the gain is expressed
+% in per-voltage terms (matches the repo's controller, which compares an
+% RMS voltage error to a current reference). PI zero one decade below the
+% crossover (Ki = Kp · w_bw_v / 5). Always re-verify on Bode for plants
+% that differ significantly from the 480 V / 10 kVA baseline.
 w_bw_v = 2*pi*f_bw_v;
-Kp_v   = w_bw_v * p.C_f * 100;      % units chosen to keep Kp_v O(1) for repo plant
+Kp_v   = w_bw_v * p.C_f * p.V_peak;
 Ki_v   = Kp_v * w_bw_v / 5;
 end
 

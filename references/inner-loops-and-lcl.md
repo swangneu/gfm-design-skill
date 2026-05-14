@@ -66,7 +66,7 @@ K_p_i   = ω_bw_i · L_f                 // repo: 2π·1000 · 4e-3 ≈ 25.1
 K_i_i   = ω_bw_i · R_f                 // repo: 2π·1000 · 0.05 ≈ 0.314
 ```
 
-The repo already uses these formulas in `single/gfm_params.m`.
+`gfm_design_from_specs.m` and `gfm_inner_loop_tuning.m` both populate `p.Kp_i` and `p.Ki_i` from exactly these formulas.
 
 ## Outer voltage loop
 
@@ -83,11 +83,11 @@ T_v(s) ≈ K_p_v / (1/ω_outer_v + K_p_v · (s / ω_inner_i + 1)^{−1})
 A reasonable starting point:
 ```
 ω_bw_v  = ω_bw_i / 10                  // 100 Hz target
-K_p_v   ≈ ω_bw_v · C_f · V_dc          (depends on per-unit scaling)
-K_i_v   ≈ K_p_v · ω_bw_v / 5
+K_p_v   ≈ ω_bw_v · C_f · V_peak        (gain scales with operating voltage)
+K_i_v   ≈ K_p_v · ω_bw_v / 5           (PI zero one decade below crossover)
 ```
 
-Repo's `single/gfm_params.m` uses `Kp_v = 0.5, Ki_v = 100` heuristically. For a tighter design pass:
+The `V_peak` factor (instead of `V_dc` or a bare scale) keeps the gain dimensionally consistent across plants. For the repo plant (`C_f = 5 µF`, `V_peak ≈ 392 V`, `f_bw_v = 100 Hz`): `K_p_v ≈ 1.23`, `K_i_v ≈ 154`. Repo's hand-tuned `Kp_v = 0.5, Ki_v = 100` is in the same order. For a tighter design pass:
 ```matlab
 % From gfm_inner_loop_tuning.m
 [Kp_i, Ki_i, Kp_v, Ki_v] = gfm_inner_loop_tuning(p, 'f_bw_i', 1000, 'f_bw_v', 100);
@@ -138,7 +138,7 @@ Inside the inner I loop, the cross-coupling terms `±ω · L_f · i_{q,d}` and t
 - Cross-coupling causes a P/Q interaction (transient ringing across axes).
 - Missing feed-forward forces the I loop to fight grid disturbances at low frequency.
 
-Most published designs include both. The repo's current scaffold leaves them out because the baseline runs with no inner loop. If adding inner loops, include both.
+Most published designs include both. If you skip the inner loop (baseline that drives `m_abc` from `v_ref` directly), decoupling and feed-forward don't apply; if you add inner loops, include both.
 
 ## Worked example (full cascaded inner/outer on repo plant)
 
@@ -150,7 +150,7 @@ p.Ki_i  = ω_bw_i * p.R_f;        % ≈ 0.314 (small — R is tiny)
 
 % Outer voltage loop (target 100 Hz)
 ω_bw_v  = 2*pi*100;
-p.Kp_v  = ω_bw_v * p.C_f * 100;  % scale factor depends on units; verify on Bode
+p.Kp_v  = ω_bw_v * p.C_f * p.V_peak; % scales with operating voltage; verify on Bode
 p.Ki_v  = p.Kp_v * ω_bw_v / 5;
 
 % Decoupling and feed-forward should be inside the controller code.
