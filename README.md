@@ -11,6 +11,7 @@ When invoked, the skill helps you:
 - **Predict** steady-state $\omega_{\mathrm{pcc}}$, $V_{\mathrm{pcc}}$, and per-inverter $P/Q$ sharing *before* running a simulation.
 - **Linearize** the closed-loop dynamics for a pole/Bode quick-look across droop / VSG / dVOC / PSC.
 - **Screen** nominal current headroom, modulation headroom, limiter assumptions, and grid-code/standards inputs without claiming compliance.
+- **Frame** Simulink handoff assumptions, LVRT/FRT cases, strong-grid stability checks, and post-design simulation scenarios with source-backed references.
 
 Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation is left to manual sim review (or a future companion validation skill).
 
@@ -40,7 +41,12 @@ Control laws covered with self-contained math + worked examples:
 | Cross-cutting | Inner V/I PI on LCL | [inner-loops-and-lcl.md](references/inner-loops-and-lcl.md) |
 | Cross-cutting | Multi-unit $P/Q$ sharing | [multi-unit-sharing.md](references/multi-unit-sharing.md) |
 | Cross-cutting | Current limiting and protection envelope | [current-limiting-and-protection.md](references/current-limiting-and-protection.md) |
+| Cross-cutting | LVRT and fault-ride-through | [lvrt-and-fault-ride-through.md](references/lvrt-and-fault-ride-through.md) |
+| Cross-cutting | Strong-grid stability | [strong-grid-stability.md](references/strong-grid-stability.md) |
+| Cross-cutting | Simulink modeling conventions | [simulink-modeling-conventions.md](references/simulink-modeling-conventions.md) |
+| Cross-cutting | GFM simulation test scenarios | [gfm-test-scenarios.md](references/gfm-test-scenarios.md) |
 | Cross-cutting | Standards/grid-code boundary | [standards-and-grid-codes.md](references/standards-and-grid-codes.md) |
+| Cross-cutting | Recent GFM requirements and research directions | [recent-gfm-requirements.md](references/recent-gfm-requirements.md) |
 
 Decision tree across all laws: [control-law-taxonomy.md](references/control-law-taxonomy.md). Full IEEE bibliography: [bibliography.md](references/bibliography.md).
 
@@ -160,7 +166,12 @@ gfm-design/
 │   ├── virtual-impedance.md          Cross-cutting Q-sharing / fault-limit overlay
 │   ├── multi-unit-sharing.md         Predicted P/Q sharing math
 │   ├── current-limiting-and-protection.md
+│   ├── lvrt-and-fault-ride-through.md
+│   ├── strong-grid-stability.md
+│   ├── simulink-modeling-conventions.md
+│   ├── gfm-test-scenarios.md
 │   ├── standards-and-grid-codes.md
+│   ├── recent-gfm-requirements.md
 │   └── bibliography.md               IEEE Transactions citations, by family
 └── scripts/                          MATLAB tooling (all standalone)
     ├── gfm_design_from_specs.m       specs -> populated parameter struct
@@ -182,8 +193,10 @@ The MATLAB scripts in this skill have no other dependencies.
 
 - Output of this skill is a **design**, not evidence. A design predicts behavior; only simulation verifies it. The skill never invokes `sim()`.
 - Current-limit and grid-code fields are **assumptions and screening checks**, not implemented protection or compliance evidence. Fault behavior still requires EMT simulation, HIL/protection review, and site-specific interconnection requirements.
+- LVRT/FRT, strong-grid, and Simulink-modeling notes are **handoff and validation-planning guidance**. They help define what to test; they do not replace EMT logs, protection studies, OEM data, or interconnection review.
 - This project is **not** certified, safety-qualified, or grid-code-qualified control software. Do not use its outputs for safety-critical, protection, grid-interconnection, production hardware, or field deployment decisions without independent engineering review, simulation, hardware-in-the-loop testing, and applicable certification.
 - All numeric design formulas are grounded in IEEE Transactions papers cited in [references/bibliography.md](references/bibliography.md). Surveys and tertiary sources were used only as discovery aids.
+- Non-obvious design prompts should point to a local reference document and, where possible, a primary paper or public specification in [references/bibliography.md](references/bibliography.md). If a recommendation is only an engineering heuristic, it should be labeled as such.
 - The MATLAB scripts have been written from the same formulas as the reference docs but have not been independently validated against published reference results — treat the first run as a smoke test. The [`test_gfm_design.m`](scripts/test_gfm_design.m) harness exercises power-balance, sign conventions, small-signal stability per law, and the law-equivalence relations ($\mathrm{VSG} \leftrightarrow \mathrm{droop}$, $\mathrm{dVOC} \leftrightarrow \mathrm{droop}$ slopes). Run it with `addpath('scripts'); test_gfm_design`.
 
 ## Contributing
@@ -191,8 +204,10 @@ The MATLAB scripts in this skill have no other dependencies.
 Issues and pull requests welcome. Priority targets:
 
 1. A companion validation skill that closes the loop on a simulated design (compare predicted vs. logged $P/Q$, $\omega$, $V$).
-2. Worked examples for non-default plant configurations (low-voltage feeder, weak grid with SCR < 2, mixed R/X).
-3. Better Bode-derived heuristics for the outer voltage PI gain across plants very different from the 480 V / 10 kVA baseline.
+2. A reproducible Simulink skeleton builder that follows [simulink-modeling-conventions.md](references/simulink-modeling-conventions.md).
+3. Worked examples for non-default plant configurations (low-voltage feeder, weak grid with SCR < 2, strong grid with SCR > 20, mixed R/X).
+4. LVRT/FRT and strong-grid scenario harnesses that implement [gfm-test-scenarios.md](references/gfm-test-scenarios.md).
+5. Better Bode-derived heuristics for the outer voltage PI gain across plants very different from the 480 V / 10 kVA baseline.
 
 ## License
 

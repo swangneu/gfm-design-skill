@@ -83,6 +83,10 @@ For three-phase unbalanced faults, a positive-sequence-only limiter is not
 enough. Decide whether the controller regulates balanced internal voltage,
 injects negative-sequence current, or limits per-phase current first. This
 choice is site- and product-specific and must be validated in EMT simulation.
+For low-voltage ride-through work, also record the voltage-time curve, voltage
+measurement basis, current-priority rule, negative-sequence/per-phase behavior,
+momentary-cessation assumption, and limiter exit rule; see
+[lvrt-and-fault-ride-through](lvrt-and-fault-ride-through.md).
 
 ## Anti-windup requirements
 
@@ -129,6 +133,7 @@ This skill does not run `sim()`. A credible validation pass should include:
 ## Cross-references
 
 - Standards map: [standards-and-grid-codes](standards-and-grid-codes.md).
+- LVRT/FRT workflow: [lvrt-and-fault-ride-through](lvrt-and-fault-ride-through.md).
 - Virtual-impedance limiter hook: [virtual-impedance](virtual-impedance.md).
 - Inner-loop current-reference limiting: [inner-loops-and-lcl](inner-loops-and-lcl.md).
 - Sharing breakdown under saturation: [multi-unit-sharing](multi-unit-sharing.md).

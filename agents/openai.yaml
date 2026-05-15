@@ -1,4 +1,4 @@
 interface:
   display_name: "GFM Design"
-  short_description: "Design GFM controls with protection checks"
-  default_prompt: "Use $gfm-design to choose and tune a grid-forming inverter controller from my Simulink specs, including current-limit and grid-code assumptions."
+  short_description: "Design GFM controls with LVRT and stability checks"
+  default_prompt: "Use $gfm-design to choose and tune a grid-forming inverter controller from my Simulink specs, including current-limit, LVRT/FRT, strong-grid, and grid-code assumptions."

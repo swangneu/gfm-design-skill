@@ -2,7 +2,7 @@
 
 IEEE Transactions and equivalent trusted publications, organized by family. The references in the design notes are drawn from this list — keep new sources in this file rather than scattering them.
 
-Selection criteria (per user instruction): prefer IEEE Transactions; accept IEEE TIA / TPEL / TPS / TAC / TCS-I / IES, and equivalent peer-reviewed venues (IET, EPSR). Skip preprints, MDPI, and unverified summaries except where they aggregate IEEE work and are flagged as such.
+Selection criteria (per user instruction): prefer IEEE Transactions; accept IEEE TIA / TPEL / TPS / TAC / TCS-I / IES, and equivalent peer-reviewed venues (IET, EPSR). For grid-code, GFM specification, model-quality, and Simulink handoff guidance, use official standards, system-operator, national-lab, or MathWorks documentation. Skip preprints, MDPI, vendor marketing, and unverified summaries except where they aggregate primary work and are flagged as such.
 
 ## Family A — Droop and direct synchronization
 
@@ -52,12 +52,37 @@ Selection criteria (per user instruction): prefer IEEE Transactions; accept IEEE
 **Overcurrent / fault-ride-through for GFM**
 - Rosso, R.; Wang, X.; Liserre, M.; Lu, X.; Engelken, S. *Grid-forming converters: Control approaches, grid-synchronization, and future trends — A review*. IEEE Open Journal of Industry Applications, 2:93–109, 2021.
 - Baeckeland, N.; Chatterjee, D.; Lu, M.; Johnson, B.; Seo, G.-S. *Overcurrent Limiting in Grid-Forming Inverters: A Comprehensive Review and Discussion*. IEEE Transactions on Power Electronics, 39(11):14493-14517, Nov 2024. DOI: 10.1109/TPEL.2024.3430316.
+- Ordonez Murillo, A.; et al. *Current limiting strategies for grid forming inverters under low voltage ride through*. Renewable and Sustainable Energy Reviews, 202:114657, Sept 2024. DOI: 10.1016/j.rser.2024.114657.
+- Dolado Fernandez, J.J.; Garcia, J.; Rausell Navarro, E.; Arnaltes Gomez, S.; Rodriguez Amenedo, J.L. *Low-Voltage Ride-Through Algorithm for Grid-Forming Converters*. IEEE Transactions on Power Electronics, 40(1):303-315, Jan 2025. DOI: 10.1109/TPEL.2024.3458193.
+- Lyu, X.; Du, W.; Mohiuddin, S.M.; Nandanoori, S.P.; Elizondo, M. *Criteria for Grid-Forming Inverters Transitioning Between Current Limiting Mode and Normal Operation*. IEEE Transactions on Power Systems, 2024. DOI: 10.1109/TPWRS.2024.3402012.
+- *A fault ride-through strategy for grid-forming converters under symmetrical and asymmetrical grid faults*. Electric Power Systems Research, 235:110672, 2024. DOI: 10.1016/j.epsr.2024.110672.
+
+**Strong-grid and grid-strength stability**
+- Li, Y.; Gu, Y.; Green, T. *Revisiting Grid-Forming and Grid-Following Inverters: A Duality Theory*. IEEE Transactions on Power Systems, 37(6):4541-4554, Nov 2022. DOI: 10.1109/TPWRS.2022.3151851.
+- Huang, L.; Wu, C.; Zhou, D.; Blaabjerg, F. *A Simplified SISO Small-Signal Model for Analyzing Instability Mechanism of Grid-Forming Inverter under Stronger Grid*. IEEE COMPEL, 2021. DOI: 10.1109/COMPEL52922.2021.9646041.
+- Ravanji, M.H.; Rathnayake, D.B.; Mansour, M.Z.; Bahrani, B. *Impact of Voltage-Loop Feedforward Terms on the Stability of Grid-Forming Inverters and Remedial Actions*. IEEE Transactions on Energy Conversion, 2023. DOI: 10.1109/TEC.2023.3246566.
 
 ## Standards, specifications, and grid-code anchors
 
 - IEEE Std 1547-2018. *IEEE Standard for Interconnection and Interoperability of Distributed Energy Resources with Associated Electric Power Systems Interfaces*. Use for distribution DER interconnection requirements and test expectations.
 - IEEE Std 2800-2022. *IEEE Standard for Interconnection and Interoperability of Inverter-Based Resources (IBRs) Interconnecting with Associated Transmission Electric Power Systems*. Use for transmission/sub-transmission IBR capability expectations.
 - UNIFI Consortium. *Specifications for Grid-forming Inverter-based Resources, Version 2*. NREL/TP-5D00-89269, 2024. Use for GFM-specific functional behavior, current-limited ride-through assumptions, and EMT model expectations.
+- AEMO. *Voluntary Specification for Grid-Forming Inverters: Core Requirements Test Framework*. January 2024. Use for scenario-style GFM tests and behavioral expectations. https://www.aemo.com.au/-/media/files/initiatives/engineering-framework/2023/grid-forming-inverters-jan-2024.pdf
+- AEMO. *Grid-forming Technology Access Standards Technical Requirements Review*. Initiated 2025. Use as evidence that GFM voluntary guidance is moving toward connection/access requirements in some jurisdictions. https://www.aemo.com.au/consultations/current-and-closed-consultations/grid-forming-technology-access-standards-technical-requirements-review
+- NERC. *Grid Forming Functional Specifications for BPS-Connected Battery Energy Storage Systems*. White Paper, September 2023. Use for BPS-connected BESS functional behavior prompts and test expectations. https://www.nerc.com/globalassets/our-work/reports/white-papers/white_paper_gfm_functional_specification.pdf
+- DOE i2X. *Distributed Energy Resource Interconnection Roadmap*. 2024. Use for interconnection process context and emerging-technology standards needs. https://www.energy.gov/eere/i2x/doe-distributed-energy-resource-interconnection-roadmap
+
+## Planning-model and model-quality anchors
+
+- Du, W.; Nguyen, Q.H.; Wang, S.; Kim, J.; Liu, Y.; Zhu, S.; Tuffner, F.K.; et al. *Positive-Sequence Modeling of Droop-Controlled Grid-Forming Inverters for Transient Stability Simulation of Transmission Systems*. IEEE Transactions on Power Delivery, 39(3):1736-1748, 2024. DOI: 10.1109/TPWRD.2024.3376245.
+- Du, W.; Lasseter, R.H.; Hardt, C.; Wang, S.; Zhu, S.; Liu, Y.; Nguyen, Q.; et al. *Model Specification of Droop-Controlled, Grid-Forming Inverters (REGFM_A1)*. PNNL-35110, September 2023. WECC approved/final model specification. https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-35110.pdf
+- PNNL. *New Grid-Forming Inverter Models Help Utilities Plan for a Renewable Future*. July 2024. Use as public context for REGFM_A1 and REGFM_B1 planning-model adoption; not a control-design source. https://www.pnnl.gov/publications/new-grid-forming-inverter-models-help-utilities-plan-renewable-future
+
+## Simulink and model-readability anchors
+
+- MathWorks. *Programmatic Modeling Basics*. Use for repeatable model generation with `new_system`, `add_block`, `add_line`, `set_param`, and related APIs. https://www.mathworks.com/help/simulink/ug/approach-modeling-programmatically.html
+- MathWorks. *MAB Modeling Guidelines*. Use for readability, naming, simulation/verification, and code-generation modeling conventions. https://www.mathworks.com/help/simulink/mab-modeling-guidelines.html
+- MathWorks. *Modeling Guidelines for Subsystems*. Use for subsystem hierarchy, inport/outport, signal labels, and block layout checks. https://www.mathworks.com/help/ecoder/ug/modeling-guidelines-for-subsystems.html
 
 ## Surveys and landscape papers
 
@@ -72,4 +97,5 @@ When writing a new reference doc:
 1. Cite the *primary* paper (the first paper introducing the law), not a tertiary survey.
 2. Quote the equation form the primary paper uses. Notation differs subtly across surveys.
 3. If a survey is more accessible (open-access), still cite the primary paper and note "see also: <survey>" as a reading aid.
-4. Do not cite preprints, vendor whitepapers, or unverified MDPI summaries as authority. They can be cross-checks, not sources.
+4. For standards, test frameworks, planning-model specs, and Simulink handoff rules, cite the official public document directly.
+5. Do not cite preprints, vendor marketing, or unverified MDPI summaries as authority. They can be cross-checks, not sources.

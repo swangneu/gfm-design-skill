@@ -69,9 +69,19 @@ where `φ = atan2(R_line, X_line)`. Virtual impedance achieves the same outcome 
 - **R_v too large** at steady state: voltage regulation degrades (extra IR drop). Use adaptive form.
 - **Algebraic loop with `R_d`**: passive damping `R_d` is *physical*, virtual `R_v` is *signal-space*. They don't conflict but they do add.
 
+## Additional cases where virtual impedance matters
+
+- Strong-grid connection — use virtual impedance deliberately as a stiffness
+  and damping lever, not just a sharing fix; see
+  [strong-grid-stability](strong-grid-stability.md).
+- LVRT/FRT — adaptive or threshold virtual impedance can preserve voltage-source
+  behavior behind an impedance, but it must be validated with current-limit and
+  recovery scenarios; see [lvrt-and-fault-ride-through](lvrt-and-fault-ride-through.md).
+
 ## When NOT to add virtual impedance
 
-- Single inverter on a stiff grid — no sharing problem, no need.
+- Single inverter on a stiff grid with no hard-grid transient, LVRT, or damping
+  concern — no sharing problem, usually no need.
 - Inner V/I loops already in place with `R_v` baked in — don't double-count.
 - Fault behavior is handled by hardware (e.g. crowbar circuit) — virtual impedance becomes redundant.
 
@@ -104,3 +114,4 @@ In the controller code, subtract `R_v · i_d/q` (and the HP-filtered `L_v · di/
 - Multi-unit sharing math: [multi-unit-sharing](multi-unit-sharing.md).
 - Family-specific notes on where to inject the term: [droop-design](droop-design.md), [vsg-synchronverter-design](vsg-synchronverter-design.md), [dvoc-design](dvoc-design.md), [psc-design](psc-design.md).
 - IEEE sources (Wang/Beerten/Belmans 2015 TPEL; adaptive form CPSS 2024): [bibliography](bibliography.md).
+- Strong-grid and LVRT cross-checks: [strong-grid-stability](strong-grid-stability.md), [lvrt-and-fault-ride-through](lvrt-and-fault-ride-through.md).

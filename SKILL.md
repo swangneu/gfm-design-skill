@@ -57,8 +57,13 @@ References (read on demand — they are self-contained, not just citations):
 - `references/inner-loops-and-lcl.md` — cascaded V-outer + I-inner PI on dq, bandwidth ladder, LCL resonance window, active vs. passive damping.
 - `references/virtual-impedance.md` — cross-cutting Q-sharing fix, fault-current limiting hook.
 - `references/current-limiting-and-protection.md` — current ratings, limiter modes, anti-windup, and fault/recovery checklist.
+- `references/lvrt-and-fault-ride-through.md` — LVRT/FRT assumptions, current-limited fault behavior, sequence/per-phase choices, and recovery/exit rules.
+- `references/strong-grid-stability.md` — high-SCR / infinite-bus stability risks, voltage-source stiffness, pre-sync, and mitigation checks.
+- `references/simulink-modeling-conventions.md` — readable Simulink handoff contract: topology, signal names, units, sample times, model notes, and build-script conventions.
+- `references/gfm-test-scenarios.md` — post-design simulation scenario matrix for nominal, weak/strong grid, LVRT, frequency, voltage, multi-unit, and energy-limit cases.
 - `references/standards-and-grid-codes.md` — how to reference IEEE 1547/2800, UNIFI, and site grid-code assumptions without claiming compliance.
 - `references/multi-unit-sharing.md` — predicted P/Q sharing math, line-Z mismatch, when to add secondary control.
+- `references/recent-gfm-requirements.md` — current research/specification directions beyond current standards and the prompt-grounding rule.
 - `references/bibliography.md` — IEEE Transactions citations, organized by family.
 
 Scripts (`scripts/`) — add the folder to MATLAB path before calling. All standalone (MATLAB ≥ R2024b; `gfm_smallsignal` also needs Control System Toolbox):
@@ -75,14 +80,16 @@ Scripts (`scripts/`) — add the folder to MATLAB path before calling. All stand
 
 Follow these steps in order. Skipping ahead invalidates downstream choices.
 
-1. **Confirm scope**: single inverter or multi-unit? Grid-connected or islanded? SCR (X/R)? — these gate the choice of control law more than tuning does.
+1. **Confirm scope**: single inverter or multi-unit? Grid-connected or islanded? SCR (X/R)? LVRT/FRT or strong-grid connection concern? — these gate the choice of control law more than tuning does.
 2. **Pick a control law** using `references/control-law-taxonomy.md`. Record the *why* (a sentence) so it lands in the `gfm_params.m` header.
 3. **Set the bandwidth ladder** before any gain math: `f_pwr_filt ≪ f_outer_v ≪ f_inner_i ≪ f_sw/2`, and `m_p · S_rated · f_pwr_filt ≪ f_n`. Reject specs that violate this — they will not be fixable by tuning.
 4. **Record the protection envelope** before handoff math: continuous/short-time current, modulation ceiling, current-limiter mode, anti-windup expectation, and applicable standard/grid-code target. If the user does not provide these, label the output as a nominal controller design only. Read `references/current-limiting-and-protection.md` and `references/standards-and-grid-codes.md` for abnormal-event work.
-5. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
-6. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect frequency/voltage/current headroom before handing off. If any unit is current-limited or modulation-limited, the linear sharing prediction is invalid.
-7. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable.
-8. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
+5. **If LVRT/FRT is in scope**, record voltage-time curves, voltage measurement basis, current-priority rule, negative-sequence/per-phase behavior, momentary-cessation assumption, and current-limit exit rule. Read `references/lvrt-and-fault-ride-through.md`.
+6. **If high SCR / strong grid is in scope**, check voltage-source stiffness, pre-synchronization assumptions, virtual impedance, damping, and SCR sweep expectations. Read `references/strong-grid-stability.md`.
+7. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
+8. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect frequency/voltage/current headroom before handing off. If any unit is current-limited or modulation-limited, the linear sharing prediction is invalid.
+9. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable. For strong-grid work, sweep `L_g` / SCR rather than checking only one grid strength.
+10. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. If the user asks for model-building guidance, cite `references/simulink-modeling-conventions.md` and `references/gfm-test-scenarios.md`. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
 
 ## Parameter-struct conventions
 
@@ -92,6 +99,8 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 - Controller intended as a `MATLAB Function` block, codegen-compatible, sampled at `p.Ts_ctrl`. It owns *all* state (no inner V/I loops as separate blocks).
 - Controller output: `m_abc ∈ [-1, 1]` direct to a `PWM Generator (2-Level)` with `ModulatingSignals='off'` (external modulation). No SVPWM, no dq-frame outputs.
 - Protection fields (`I_cont_peak`, `I_limit_peak`, `I_short_peak`, `t_short_limit`, `m_max`, `current_limit_mode`) are design-screening assumptions. They do not implement protection unless the user's controller consumes them.
+- LVRT/FRT fields (if present) are assumptions for a future simulation or HIL test harness: voltage-time curve, measurement basis, current-priority rule, sequence/per-phase behavior, and recovery logic.
+- Strong-grid fields (if present) are stress-case assumptions: SCR/X/R sweep range, virtual impedance, pre-synchronization thresholds, and high-SCR damping checks.
 - Discrete power system: `powergui` in `Discrete` mode, `Ts = p.Ts_power = 1e-6`. Solver `ode23tb` with `MaxStep = 1e-4`.
 - `gfm_params()` should `assignin('base','p',p)` so block parameters like `'p.V_dc'` resolve at compile time.
 
@@ -104,6 +113,9 @@ When the design phase ends, produce:
 1. A populated `gfm_params.m` (printed inline, or written to disk on user request).
 2. A short rationale: chosen law + one sentence why, the bandwidth ladder values, predicted steady-state P/Q/current headroom from `gfm_predict_steady_state`.
 3. A protection/grid-code assumptions note: current limits used, limiter mode, modulation headroom, and whether IEEE/UNIFI/site requirements are known or still missing.
-4. (Optional) Small-signal pole locations from `gfm_smallsignal` if stability margin matters.
+4. LVRT/FRT and strong-grid notes when relevant: what was assumed, what remains untested, and which scenarios must be run outside the skill.
+5. (Optional) Small-signal pole locations from `gfm_smallsignal` if stability margin matters.
+
+Ground non-obvious recommendations in a local reference doc and, where possible, the primary source listed in `references/bibliography.md`. If a recommendation is only an engineering heuristic, say so explicitly.
 
 Do not pretend to have run simulations or compliance tests. The skill never invokes `sim()` — simulation and grid-code evidence come from the user running MATLAB+Simulink, EMT/HIL cases, and project-specific review.

@@ -175,6 +175,8 @@ p.Ki_v  = p.Kp_v * ω_bw_v / 5;
 
 ## Cross-references
 
+- Simulink handoff and readability conventions: [simulink-modeling-conventions](simulink-modeling-conventions.md).
 - LCL diagnostic and waveform checks during sim are out of scope here — pair this skill with a three-phase-grid-inverter / SVPWM skill or do those checks manually (phase/line RMS balance, phase sum, DC offset, sector counts, gate-vs-plant gate equality).
+- LVRT/FRT and strong-grid scenario checks: [lvrt-and-fault-ride-through](lvrt-and-fault-ride-through.md), [strong-grid-stability](strong-grid-stability.md).
 - IEEE LCL design reference (Liserre/Blaabjerg/Hansen 2005): [bibliography](bibliography.md).
 - Inner-loop gain computation script: `../scripts/gfm_inner_loop_tuning.m`.
