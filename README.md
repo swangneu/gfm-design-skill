@@ -16,11 +16,11 @@ When invoked, the skill helps you:
 
 Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation belongs in the companion validation skill or a project-specific manual sim review.
 
-Companion skill: `gfm-validation` handles the simulation-facing side. Use `gfm-design` for first-pass design and analytical predictions; use `gfm-validation` after a Simulink model or captured logs exist to run `sim()`, compare logged P/Q/f/V/I values against the prediction, and write a validation report.
+Companion skill: [`gfm-validation`](https://github.com/swangneu/gfm-validation-skill) handles the simulation-facing side. Use `gfm-design` for first-pass design and analytical predictions; use `gfm-validation` after a Simulink model or captured logs exist to run `sim()`, compare logged P/Q/f/V/I values against the prediction, and write a validation report.
 
 ## Companion workflow
 
-`gfm-design` and `gfm-validation` form a two-skill loop:
+`gfm-design` and [`gfm-validation`](https://github.com/swangneu/gfm-validation-skill) form a two-skill loop:
 
 ```text
 specs -> gfm-design -> gfm_params.m + analytical prediction
@@ -164,7 +164,7 @@ disp(info.poles);
 %    SKILL.md for the assumed plant topology and controller interface.
 ```
 
-After the model is built, use the companion `gfm-validation` skill to run or inspect simulation logs. If its report shows a true design mismatch, bring the report back to `gfm-design` and follow [validation-feedback-loop.md](references/validation-feedback-loop.md) before retuning.
+After the model is built, use the companion [`gfm-validation`](https://github.com/swangneu/gfm-validation-skill) skill to run or inspect simulation logs. If its report shows a true design mismatch, bring the report back to `gfm-design` and follow [validation-feedback-loop.md](references/validation-feedback-loop.md) before retuning.
 
 ## Repo layout
 
@@ -212,7 +212,7 @@ The MATLAB scripts in this skill have no other dependencies.
 ## Scope and verification
 
 - Output of this skill is a **design**, not evidence. A design predicts behavior; only simulation verifies it. The skill never invokes `sim()`.
-- Validation feedback is processed here only after `gfm-validation` or an equivalent simulation review identifies a design-assumption or tuning issue. Log extraction, pass/fail comparison, and report generation stay in `gfm-validation`.
+- Validation feedback is processed here only after [`gfm-validation`](https://github.com/swangneu/gfm-validation-skill) or an equivalent simulation review identifies a design-assumption or tuning issue. Log extraction, pass/fail comparison, and report generation stay in `gfm-validation`.
 - Current-limit and grid-code fields are **assumptions and screening checks**, not implemented protection or compliance evidence. Fault behavior still requires EMT simulation, HIL/protection review, and site-specific interconnection requirements.
 - LVRT/FRT, strong-grid, and Simulink-modeling notes are **handoff and validation-planning guidance**. They help define what to test; they do not replace EMT logs, protection studies, OEM data, or interconnection review.
 - This project is **not** certified, safety-qualified, or grid-code-qualified control software. Do not use its outputs for safety-critical, protection, grid-interconnection, production hardware, or field deployment decisions without independent engineering review, simulation, hardware-in-the-loop testing, and applicable certification.
