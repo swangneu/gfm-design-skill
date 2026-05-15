@@ -12,8 +12,24 @@ When invoked, the skill helps you:
 - **Linearize** the closed-loop dynamics for a pole/Bode quick-look across droop / VSG / dVOC / PSC.
 - **Screen** nominal current headroom, modulation headroom, limiter assumptions, and grid-code/standards inputs without claiming compliance.
 - **Frame** Simulink handoff assumptions, LVRT/FRT cases, strong-grid stability checks, and post-design simulation scenarios with source-backed references.
+- **Process** `gfm-validation` feedback when simulation evidence shows the design assumptions or controller parameters need revision.
 
-Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation is left to manual sim review (or a future companion validation skill).
+Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation belongs in the companion validation skill or a project-specific manual sim review.
+
+Companion skill: `gfm-validation` handles the simulation-facing side. Use `gfm-design` for first-pass design and analytical predictions; use `gfm-validation` after a Simulink model or captured logs exist to run `sim()`, compare logged P/Q/f/V/I values against the prediction, and write a validation report.
+
+## Companion workflow
+
+`gfm-design` and `gfm-validation` form a two-skill loop:
+
+```text
+specs -> gfm-design -> gfm_params.m + analytical prediction
+      -> user Simulink model
+      -> gfm-validation -> simulation report
+      -> gfm-design -> assumption update or retuned parameters, if needed
+```
+
+Use `gfm-design` again only when the validation report points to a design-level issue: droop slopes, VSG inertia/damping, dVOC/PSC gains, virtual impedance, protection envelope, bandwidth ladder, current headroom, modulation headroom, or grid-assumption mismatch. If the issue is missing logs, wrong units, a bad settled window, or pure pass/fail reporting, keep the work in `gfm-validation`.
 
 ## Notation
 
@@ -47,6 +63,7 @@ Control laws covered with self-contained math + worked examples:
 | Cross-cutting | GFM simulation test scenarios | [gfm-test-scenarios.md](references/gfm-test-scenarios.md) |
 | Cross-cutting | Standards/grid-code boundary | [standards-and-grid-codes.md](references/standards-and-grid-codes.md) |
 | Cross-cutting | Recent GFM requirements and research directions | [recent-gfm-requirements.md](references/recent-gfm-requirements.md) |
+| Cross-cutting | Validation feedback triage | [validation-feedback-loop.md](references/validation-feedback-loop.md) |
 
 Decision tree across all laws: [control-law-taxonomy.md](references/control-law-taxonomy.md). Full IEEE bibliography: [bibliography.md](references/bibliography.md).
 
@@ -147,6 +164,8 @@ disp(info.poles);
 %    SKILL.md for the assumed plant topology and controller interface.
 ```
 
+After the model is built, use the companion `gfm-validation` skill to run or inspect simulation logs. If its report shows a true design mismatch, bring the report back to `gfm-design` and follow [validation-feedback-loop.md](references/validation-feedback-loop.md) before retuning.
+
 ## Repo layout
 
 ```
@@ -172,6 +191,7 @@ gfm-design/
 │   ├── gfm-test-scenarios.md
 │   ├── standards-and-grid-codes.md
 │   ├── recent-gfm-requirements.md
+│   ├── validation-feedback-loop.md
 │   └── bibliography.md               IEEE Transactions citations, by family
 └── scripts/                          MATLAB tooling (all standalone)
     ├── gfm_design_from_specs.m       specs -> populated parameter struct
@@ -192,6 +212,7 @@ The MATLAB scripts in this skill have no other dependencies.
 ## Scope and verification
 
 - Output of this skill is a **design**, not evidence. A design predicts behavior; only simulation verifies it. The skill never invokes `sim()`.
+- Validation feedback is processed here only after `gfm-validation` or an equivalent simulation review identifies a design-assumption or tuning issue. Log extraction, pass/fail comparison, and report generation stay in `gfm-validation`.
 - Current-limit and grid-code fields are **assumptions and screening checks**, not implemented protection or compliance evidence. Fault behavior still requires EMT simulation, HIL/protection review, and site-specific interconnection requirements.
 - LVRT/FRT, strong-grid, and Simulink-modeling notes are **handoff and validation-planning guidance**. They help define what to test; they do not replace EMT logs, protection studies, OEM data, or interconnection review.
 - This project is **not** certified, safety-qualified, or grid-code-qualified control software. Do not use its outputs for safety-critical, protection, grid-interconnection, production hardware, or field deployment decisions without independent engineering review, simulation, hardware-in-the-loop testing, and applicable certification.
@@ -203,7 +224,7 @@ The MATLAB scripts in this skill have no other dependencies.
 
 Issues and pull requests welcome. Priority targets:
 
-1. A companion validation skill that closes the loop on a simulated design (compare predicted vs. logged $P/Q$, $\omega$, $V$).
+1. Deeper validation-feedback recipes that map simulation findings to design actions without weakening the `gfm-design` / `gfm-validation` boundary.
 2. A reproducible Simulink skeleton builder that follows [simulink-modeling-conventions.md](references/simulink-modeling-conventions.md).
 3. Worked examples for non-default plant configurations (low-voltage feeder, weak grid with SCR < 2, strong grid with SCR > 20, mixed R/X).
 4. LVRT/FRT and strong-grid scenario harnesses that implement [gfm-test-scenarios.md](references/gfm-test-scenarios.md).

@@ -25,6 +25,7 @@ desktop.ini
 
 # Sim outputs (users generate these locally)
 runs/
+test/
 
 # Local Claude state
 .claude/settings.local.json

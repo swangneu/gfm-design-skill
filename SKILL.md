@@ -1,6 +1,6 @@
 ---
 name: gfm-design
-description: "Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, multi-unit P/Q sharing, and nominal current/protection envelope checks. Produces a populated `gfm_params.m` parameter struct plus analytical predictions (steady-state ω/V/P/Q, current headroom, small-signal poles) for the user to drop into their own Simulink model. Out of scope: certification/grid-code compliance proof, post-simulation validation (manual sim review), bridge/PWM correctness, grid-following controllers."
+description: "Use when designing, choosing, or tuning a grid-forming inverter control law for a Simulink/Simscape model, or when a gfm-validation report shows design assumptions or controller parameters need revision. Covers droop, VSG/synchronverter, dVOC, PSC, virtual impedance, inner V/I loops on an LCL, multi-unit P/Q sharing, nominal current/protection envelope checks, and validation-feedback retuning. Produces a populated `gfm_params.m` parameter struct plus analytical predictions. Out of scope: running sim(), certification/grid-code compliance proof, bridge/PWM correctness, grid-following controllers."
 ---
 
 # GFM Design
@@ -30,6 +30,8 @@ hand the parameter struct off to the user's Simulink model — manual sim review
 
 The skill never invokes `sim()`. Stop using it once a model exists and the question becomes "does the sim match the design".
 
+Companion skill: use `$gfm-validation` for simulation-facing work after this skill produces a design. `gfm-validation` runs or inspects Simulink logs, compares them against `gfm_predict_steady_state`, and writes validation reports. Keep controller retuning and first-pass parameter design here; keep model execution and log comparison there.
+
 ## When to use this skill
 
 Use when the user:
@@ -38,10 +40,12 @@ Use when the user:
 - Wants to choose between droop / VSG / dVOC / PSC for a new model
 - Asks to size droop coefficients, virtual inertia, voltage-loop gains, or dVOC `eta`/`alpha`
 - Modifies `gfm_params.m` and wants the dependent gains recomputed consistently
+- Provides a `gfm-validation` report and asks whether design assumptions or controller parameters should change
 
 Do NOT use when:
 
-- Simulation is already done and the user is debugging waveforms or sharing → manual sim review
+- Simulation is already done and the user is only asking to extract logs, compare signals, or judge pass/fail results → use `$gfm-validation`
+- Simulation is already done and the user is debugging raw waveforms without asking for design changes → use `$gfm-validation` or manual sim review
 - The question is about PWM correctness, bridge gate ordering, sector tables → out of scope
 - The controller is grid-following (PLL-based, current-source) → out of scope
 
@@ -64,6 +68,7 @@ References (read on demand — they are self-contained, not just citations):
 - `references/standards-and-grid-codes.md` — how to reference IEEE 1547/2800, UNIFI, and site grid-code assumptions without claiming compliance.
 - `references/multi-unit-sharing.md` — predicted P/Q sharing math, line-Z mismatch, when to add secondary control.
 - `references/recent-gfm-requirements.md` — current research/specification directions beyond current standards and the prompt-grounding rule.
+- `references/validation-feedback-loop.md` — how to triage `gfm-validation` reports and decide whether to retune, change assumptions, or fix model/logging issues.
 - `references/bibliography.md` — IEEE Transactions citations, organized by family.
 
 Scripts (`scripts/`) — add the folder to MATLAB path before calling. All standalone (MATLAB ≥ R2024b; `gfm_smallsignal` also needs Control System Toolbox):
@@ -90,6 +95,17 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 8. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect frequency/voltage/current headroom before handing off. If any unit is current-limited or modulation-limited, the linear sharing prediction is invalid.
 9. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable. For strong-grid work, sweep `L_g` / SCR rather than checking only one grid strength.
 10. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. If the user asks for model-building guidance, cite `references/simulink-modeling-conventions.md` and `references/gfm-test-scenarios.md`. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.
+
+## Validation feedback loop
+
+When the user returns with a `gfm-validation` report, read `references/validation-feedback-loop.md` before changing parameters. Triage findings in this order:
+
+1. **Measurement/logging issue**: unit mismatch, sign convention, wrong PCC boundary, or bad settled window. Send the user back to `$gfm-validation` or model logging fixes; do not retune.
+2. **Scenario outside assumptions**: current limiting, modulation saturation, LVRT/FRT, unbalanced fault, high-SCR stress, or a grid impedance not represented in `p`. Update assumptions and protection notes before retuning.
+3. **Design mismatch**: prediction and logs are measured correctly but final P/Q/f/V, damping, sharing, or current headroom miss the target. Re-enter this skill's design workflow with the validation metrics as new specs.
+4. **Model implementation mismatch**: controller interface, Park convention, limiter behavior, or inner-loop realization differs from the parameter-struct conventions. State the mismatch and either adapt the handoff assumptions or ask the user to align the model.
+
+Never treat a failed validation report as automatic proof that droop/VSG/dVOC/PSC gains are wrong. First prove the simulation case matches the design assumptions.
 
 ## Parameter-struct conventions
 
