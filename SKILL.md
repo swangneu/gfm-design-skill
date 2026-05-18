@@ -81,6 +81,10 @@ Scripts (`scripts/`) — add the folder to MATLAB path before calling. All stand
 | `gfm_smallsignal.m` | Linearize droop/VSG/dVOC/PSC → A,B,C,D for pole/Bode quick-look. |
 | `test_gfm_design.m` | Smoke harness exercising the four scripts above. |
 
+Additional implementation reference:
+
+- `references/dvoc-implementation-conventions.md` - dVOC alpha-beta/PQ scaling, `eta_scale` semantics, PWM handoff, and sign-check recipe for Simulink/switching implementations.
+
 ## Workflow
 
 Follow these steps in order. Skipping ahead invalidates downstream choices.
@@ -91,7 +95,7 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 4. **Record the protection envelope** before handoff math: continuous/short-time current, modulation ceiling, current-limiter mode, anti-windup expectation, and applicable standard/grid-code target. If the user does not provide these, label the output as a nominal controller design only. Read `references/current-limiting-and-protection.md` and `references/standards-and-grid-codes.md` for abnormal-event work.
 5. **If LVRT/FRT is in scope**, record voltage-time curves, voltage measurement basis, current-priority rule, negative-sequence/per-phase behavior, momentary-cessation assumption, and current-limit exit rule. Read `references/lvrt-and-fault-ride-through.md`.
 6. **If high SCR / strong grid is in scope**, check voltage-source stiffness, pre-synchronization assumptions, virtual impedance, damping, and SCR sweep expectations. Read `references/strong-grid-stability.md`.
-7. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect.
+7. **Compute the law-specific gains** via the matching reference + `gfm_design_from_specs.m`. The function returns a struct with the field names a `build_*.m` Simulink builder would expect. For dVOC handoff into a Simulink or switching model, read `references/dvoc-implementation-conventions.md` before declaring a gain or tracking issue.
 8. **Predict steady state** with `gfm_predict_steady_state.m`. Confirm `P_total` matches the requested load and inspect frequency/voltage/current headroom before handing off. If any unit is current-limited or modulation-limited, the linear sharing prediction is invalid.
 9. **(Optional) Linearized check**: `gfm_smallsignal(p)` for a pole/Bode quick-look. All poles in the LHP is the minimum bar; any RHP pole means the design is unstable. For strong-grid work, sweep `L_g` / SCR rather than checking only one grid strength.
 10. **Hand off**. Give the user the populated `p` struct and a short rationale; tell them to plug it into their Simulink model and run manual sim review. If the user asks for model-building guidance, cite `references/simulink-modeling-conventions.md` and `references/gfm-test-scenarios.md`. Do NOT claim the design is verified by this skill alone — the skill only produces a *design*, not evidence.

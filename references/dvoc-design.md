@@ -144,6 +144,8 @@ p.alpha     = 1 / (3 * n_q_eq * p.V_peak);     % ≈ 0.435
 
 ## Cross-references
 
+- Implementation conventions for Simulink/switching models:
+  [dvoc-implementation-conventions](dvoc-implementation-conventions.md).
 - Family overview: [control-law-taxonomy](control-law-taxonomy.md).
 - Droop slope formulas it matches: [droop-design](droop-design.md).
 - Sharing under mismatched line Z: [multi-unit-sharing](multi-unit-sharing.md).

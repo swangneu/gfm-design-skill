@@ -97,6 +97,10 @@ Use both when possible:
 The design skill can hand off parameters to either model, but it does not prove
 that the bridge, PWM, or measurement implementation is correct.
 
+For dVOC-specific alpha-beta scaling, `eta_scale`, PWM handoff, and sign checks,
+read [dvoc-implementation-conventions](dvoc-implementation-conventions.md)
+before retuning gains.
+
 ## Controller boundary
 
 The baseline contract is:
