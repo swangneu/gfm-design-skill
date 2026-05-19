@@ -78,6 +78,7 @@ These are independent of which control family you chose. Read both for any hando
 |---|---|
 | `references/simulink-modeling-conventions.md` | Topology, signal names, units, sample times, SPS source unit conventions (LL RMS vs LL peak), `Yg`/`Yn`/`Y` neutral-pin behavior, MATLAB Function chart-literal patching. |
 | `references/verified-baseline-workflow.md` | Clone-and-patch a known-good `.slx` instead of rebuilding from specs; the safer path when a verified reference model already exists. |
+| `references/time-step-coordination.md` | Four-rate ladder (power / PWM / controller / measurement), forcing a MATLAB Function block to discrete sample time matching the algorithm's hardcoded `dt`, S-Function Builder caveats, and a port-from-C recipe. |
 
 ### Plus — Read when the scenario demands it
 
