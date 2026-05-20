@@ -51,25 +51,58 @@ Do NOT use when:
 
 ## Resource map
 
-References (read on demand — they are self-contained, not just citations):
+References are organized by scope. Read essential ones for every design; read plus ones only when the scenario calls for them.
 
-- `references/control-law-taxonomy.md` — decision tree across the three IEEE-recognized families, when to pick which.
-- `references/droop-design.md` — P-ω / Q-V droop math, LPF cutoff, the `m_p = %·ωn/S` form.
-- `references/vsg-synchronverter-design.md` — swing-eq mapping (J, D, H), Q-V option, synchronverter variant, equivalence to droop+LPF.
-- `references/dvoc-design.md` — α-β oscillator, η/α/κ gains, voltage circle, slow-manifold droop equivalence.
-- `references/psc-design.md` — Harnefors-style power-synchronization control.
-- `references/inner-loops-and-lcl.md` — cascaded V-outer + I-inner PI on dq, bandwidth ladder, LCL resonance window, active vs. passive damping.
-- `references/virtual-impedance.md` — cross-cutting Q-sharing fix, fault-current limiting hook.
-- `references/current-limiting-and-protection.md` — current ratings, limiter modes, anti-windup, and fault/recovery checklist.
-- `references/lvrt-and-fault-ride-through.md` — LVRT/FRT assumptions, current-limited fault behavior, sequence/per-phase choices, and recovery/exit rules.
-- `references/strong-grid-stability.md` — high-SCR / infinite-bus stability risks, voltage-source stiffness, pre-sync, and mitigation checks.
-- `references/simulink-modeling-conventions.md` — readable Simulink handoff contract: topology, signal names, units, sample times, model notes, and build-script conventions.
-- `references/gfm-test-scenarios.md` — post-design simulation scenario matrix for nominal, weak/strong grid, LVRT, frequency, voltage, multi-unit, and energy-limit cases.
-- `references/standards-and-grid-codes.md` — how to reference IEEE 1547/2800, UNIFI, and site grid-code assumptions without claiming compliance.
-- `references/multi-unit-sharing.md` — predicted P/Q sharing math, line-Z mismatch, when to add secondary control.
-- `references/recent-gfm-requirements.md` — current research/specification directions beyond current standards and the prompt-grounding rule.
-- `references/validation-feedback-loop.md` — how to triage `gfm-validation` reports and decide whether to retune, change assumptions, or fix model/logging issues.
-- `references/bibliography.md` — IEEE Transactions citations, organized by family.
+### Essential — GFM-general (any control family)
+
+| Reference | Purpose |
+|---|---|
+| `references/control-law-taxonomy.md` | Decision tree across droop / VSG / dVOC / PSC. Pick the law before touching gains. |
+| `references/gfm-test-scenarios.md` | Steady-state → small-signal → large-signal tier ordering and the scenario matrix. Use to bound the work before designing. |
+| `references/validation-feedback-loop.md` | Triage `gfm-validation` reports; decide whether to retune, change assumptions, or fix model/logging issues. |
+
+### Essential — Control-law-specific (read only the one you chose)
+
+| Reference | Use when |
+|---|---|
+| `references/droop-design.md` | Control law is droop / P-ω, Q-V. |
+| `references/vsg-synchronverter-design.md` | Control law is VSG / synchronverter with an explicit `H`. |
+| `references/dvoc-design.md` | Control law is dVOC. Includes the Phi-form vs Andronov-Hopf-form ambiguity and saddle-IC warning. |
+| `references/psc-design.md` | Control law is Harnefors-style power-synchronization control. |
+
+### Essential — Simulation and implementation
+
+These are independent of which control family you chose. Read both for any handoff to Simulink/SPS.
+
+| Reference | Purpose |
+|---|---|
+| `references/simulink-modeling-conventions.md` | Topology, signal names, units, sample times, SPS source unit conventions (LL RMS vs LL peak), `Yg`/`Yn`/`Y` neutral-pin behavior, MATLAB Function chart-literal patching. |
+| `references/verified-baseline-workflow.md` | Clone-and-patch a known-good `.slx` instead of rebuilding from specs; the safer path when a verified reference model already exists. |
+
+### Plus — Read when the scenario demands it
+
+| Reference | Read when |
+|---|---|
+| `references/inner-loops-and-lcl.md` | Cascaded V/I PI loops on dq are in the model; LCL resonance window matters. |
+| `references/virtual-impedance.md` | Q-sharing under line-Z mismatch, or fault-current limiting via virtual impedance. |
+| `references/current-limiting-and-protection.md` | Current ratings, limiter modes, anti-windup, fault/recovery checklist. |
+| `references/lvrt-and-fault-ride-through.md` | LVRT/FRT or ZVRT in scope (Tier-3 large-signal). |
+| `references/strong-grid-stability.md` | High-SCR / infinite-bus stability, pre-sync, voltage-source stiffness (Tier-3 large-signal). |
+| `references/multi-unit-sharing.md` | Two or more inverters in parallel; sharing math, line-Z mismatch, secondary control. |
+| `references/standards-and-grid-codes.md` | Reference IEEE 1547/2800, UNIFI, or site grid-code assumptions (without claiming compliance). |
+| `references/recent-gfm-requirements.md` | Current research / specification directions beyond standards. |
+
+### Plus — Control-law implementation extras
+
+| Reference | Read when |
+|---|---|
+| `references/dvoc-implementation-conventions.md` | Implementing or porting dVOC into a switching/SPS model: form-variant cross-check, hardcoded chart literals (`P`, `Q`, `Vnom`, IC), sign and PWM validation recipe. |
+
+### Citations
+
+| Reference | Purpose |
+|---|---|
+| `references/bibliography.md` | IEEE Transactions citations, organized by family. |
 
 Scripts (`scripts/`) — add the folder to MATLAB path before calling. All standalone (MATLAB ≥ R2024b; `gfm_smallsignal` also needs Control System Toolbox):
 
@@ -81,14 +114,11 @@ Scripts (`scripts/`) — add the folder to MATLAB path before calling. All stand
 | `gfm_smallsignal.m` | Linearize droop/VSG/dVOC/PSC → A,B,C,D for pole/Bode quick-look. |
 | `test_gfm_design.m` | Smoke harness exercising the four scripts above. |
 
-Additional implementation reference:
-
-- `references/dvoc-implementation-conventions.md` - dVOC alpha-beta/PQ scaling, `eta_scale` semantics, PWM handoff, and sign-check recipe for Simulink/switching implementations.
-
 ## Workflow
 
 Follow these steps in order. Skipping ahead invalidates downstream choices.
 
+0. **Check for a verified baseline.** If the user already has a Simulink model that passes its own basic test and the task is "change one thing" (new disturbance, new setpoint, new logging) rather than "design a controller from specs", **stop here and use `references/verified-baseline-workflow.md`**. Rebuilding from scratch when a verified baseline exists is a known way to inject `sqrt(2)`/`sqrt(3)`, sample-time, and convention errors that the baseline already handled correctly.
 1. **Confirm scope**: single inverter or multi-unit? Grid-connected or islanded? SCR (X/R)? LVRT/FRT or strong-grid connection concern? — these gate the choice of control law more than tuning does.
 2. **Pick a control law** using `references/control-law-taxonomy.md`. Record the *why* (a sentence) so it lands in the `gfm_params.m` header.
 3. **Set the bandwidth ladder** before any gain math: `f_pwr_filt ≪ f_outer_v ≪ f_inner_i ≪ f_sw/2`, and `m_p · S_rated · f_pwr_filt ≪ f_n`. Reject specs that violate this — they will not be fixable by tuning.

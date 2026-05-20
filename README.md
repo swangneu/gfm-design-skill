@@ -12,6 +12,8 @@ When invoked, the skill helps you:
 - **Linearize** the closed-loop dynamics for a pole/Bode quick-look across droop / VSG / dVOC / PSC.
 - **Screen** nominal current headroom, modulation headroom, limiter assumptions, and grid-code/standards inputs without claiming compliance.
 - **Frame** Simulink handoff assumptions, LVRT/FRT cases, strong-grid stability checks, and post-design simulation scenarios with source-backed references.
+- **Clone-and-patch** a known-good baseline `.slx` instead of rebuilding from specs when a verified reference model already exists — the safer path that avoids re-deriving $\sqrt{2}$ / $\sqrt{3}$ / sample-time conventions.
+- **Stage** scenarios across three depth tiers — steady-state bring-up, small-signal disturbances, large-signal transients (phase jump, SCR step, LVRT/ZVRT) — so $\sqrt{2}$/sign errors are caught at Tier 1, not after a failed Tier 3 run.
 - **Process** `gfm-validation` feedback when simulation evidence shows the design assumptions or controller parameters need revision.
 
 Deliverable is a populated `gfm_params.m` parameter struct plus analytical predictions. The user plugs the struct into their own Simulink model; this skill never calls `sim()`. Closing the loop after simulation belongs in the companion validation skill or a project-specific manual sim review.
@@ -44,28 +46,47 @@ Use `gfm-design` again only when the validation report points to a design-level 
 
 ## Coverage
 
-Control laws covered with self-contained math + worked examples:
+References are scoped so you only read what your task needs. The table groups by **GFM-general** (every design), **control-law-specific** (only the one you chose), **simulation/implementation** (every Simulink handoff), and **plus** (read when the scenario demands).
+
+**Essential — GFM-general (any control family):**
+
+| Topic | Reference doc |
+|---|---|
+| Decision tree across droop / VSG / dVOC / PSC | [control-law-taxonomy.md](references/control-law-taxonomy.md) |
+| Depth-tier scenario matrix: steady-state $\to$ small-signal $\to$ large-signal | [gfm-test-scenarios.md](references/gfm-test-scenarios.md) |
+| `gfm-validation` feedback triage | [validation-feedback-loop.md](references/validation-feedback-loop.md) |
+
+**Essential — Control-law-specific (read only the one you chose):**
 
 | Family | Law | Reference doc |
 |---|---|---|
 | Droop | $P-\omega$ / $Q-V$ droop | [droop-design.md](references/droop-design.md) |
 | Droop | Power Synchronization Control (PSC) | [psc-design.md](references/psc-design.md) |
-| VSM | Swing-equation VSG | [vsg-synchronverter-design.md](references/vsg-synchronverter-design.md) |
-| VSM | Synchronverter (Zhong/Weiss) | [vsg-synchronverter-design.md](references/vsg-synchronverter-design.md) |
-| Oscillator | dVOC (Colombino/Groß/Dörfler) | [dvoc-design.md](references/dvoc-design.md) |
-| Cross-cutting | Virtual impedance | [virtual-impedance.md](references/virtual-impedance.md) |
-| Cross-cutting | Inner V/I PI on LCL | [inner-loops-and-lcl.md](references/inner-loops-and-lcl.md) |
-| Cross-cutting | Multi-unit $P/Q$ sharing | [multi-unit-sharing.md](references/multi-unit-sharing.md) |
-| Cross-cutting | Current limiting and protection envelope | [current-limiting-and-protection.md](references/current-limiting-and-protection.md) |
-| Cross-cutting | LVRT and fault-ride-through | [lvrt-and-fault-ride-through.md](references/lvrt-and-fault-ride-through.md) |
-| Cross-cutting | Strong-grid stability | [strong-grid-stability.md](references/strong-grid-stability.md) |
-| Cross-cutting | Simulink modeling conventions | [simulink-modeling-conventions.md](references/simulink-modeling-conventions.md) |
-| Cross-cutting | GFM simulation test scenarios | [gfm-test-scenarios.md](references/gfm-test-scenarios.md) |
-| Cross-cutting | Standards/grid-code boundary | [standards-and-grid-codes.md](references/standards-and-grid-codes.md) |
-| Cross-cutting | Recent GFM requirements and research directions | [recent-gfm-requirements.md](references/recent-gfm-requirements.md) |
-| Cross-cutting | Validation feedback triage | [validation-feedback-loop.md](references/validation-feedback-loop.md) |
+| VSM | Swing-equation VSG and Zhong/Weiss synchronverter | [vsg-synchronverter-design.md](references/vsg-synchronverter-design.md) |
+| Oscillator | dVOC (Colombino/Groß/Dörfler), including Phi-form vs Andronov-Hopf-form ambiguity and saddle-IC warning | [dvoc-design.md](references/dvoc-design.md) |
 
-Decision tree across all laws: [control-law-taxonomy.md](references/control-law-taxonomy.md). Full IEEE bibliography: [bibliography.md](references/bibliography.md).
+**Essential — Simulation and implementation (every Simulink/SPS handoff):**
+
+| Topic | Reference doc |
+|---|---|
+| Topology, signal names, units, sample times, SPS source unit conventions (LL RMS vs LL peak), `Yg`/`Yn`/`Y` neutral-pin behavior, MATLAB Function chart-literal patching | [simulink-modeling-conventions.md](references/simulink-modeling-conventions.md) |
+| Clone-and-patch a known-good `.slx` instead of rebuilding from specs | [verified-baseline-workflow.md](references/verified-baseline-workflow.md) |
+
+**Plus — Read when the scenario demands:**
+
+| Topic | Reference doc |
+|---|---|
+| Inner V/I PI on LCL | [inner-loops-and-lcl.md](references/inner-loops-and-lcl.md) |
+| Virtual impedance | [virtual-impedance.md](references/virtual-impedance.md) |
+| Multi-unit $P/Q$ sharing | [multi-unit-sharing.md](references/multi-unit-sharing.md) |
+| Current limiting and protection envelope | [current-limiting-and-protection.md](references/current-limiting-and-protection.md) |
+| LVRT/FRT and ZVRT (Tier-3 large-signal) | [lvrt-and-fault-ride-through.md](references/lvrt-and-fault-ride-through.md) |
+| Strong-grid stability (Tier-3 large-signal) | [strong-grid-stability.md](references/strong-grid-stability.md) |
+| Standards/grid-code boundary | [standards-and-grid-codes.md](references/standards-and-grid-codes.md) |
+| Recent GFM requirements and research directions | [recent-gfm-requirements.md](references/recent-gfm-requirements.md) |
+| dVOC switching/SPS implementation (form-variant cross-check, hardcoded chart literals, sign and PWM validation) | [dvoc-implementation-conventions.md](references/dvoc-implementation-conventions.md) |
+
+Full IEEE bibliography: [bibliography.md](references/bibliography.md).
 
 ## Install
 
@@ -180,6 +201,7 @@ gfm-design/
 │   ├── droop-design.md               P-omega / Q-V droop math + worked examples
 │   ├── vsg-synchronverter-design.md  Swing-eq and Zhong/Weiss synchronverter
 │   ├── dvoc-design.md                Dispatchable VOC (Colombino/Groß/Dörfler 2019)
+│   ├── dvoc-implementation-conventions.md  dVOC switching/SPS handoff, form-variant cross-check, chart literals
 │   ├── psc-design.md                 Harnefors-style power synchronization
 │   ├── inner-loops-and-lcl.md        Cascaded V/I PI + LCL filter sizing
 │   ├── virtual-impedance.md          Cross-cutting Q-sharing / fault-limit overlay
@@ -187,8 +209,9 @@ gfm-design/
 │   ├── current-limiting-and-protection.md
 │   ├── lvrt-and-fault-ride-through.md
 │   ├── strong-grid-stability.md
-│   ├── simulink-modeling-conventions.md
-│   ├── gfm-test-scenarios.md
+│   ├── simulink-modeling-conventions.md  Topology, units, SPS source conventions, neutral-pin gotcha
+│   ├── verified-baseline-workflow.md Clone-and-patch a known-good .slx instead of rebuilding
+│   ├── gfm-test-scenarios.md         Depth-tier scenario matrix (steady-state / small-signal / large-signal)
 │   ├── standards-and-grid-codes.md
 │   ├── recent-gfm-requirements.md
 │   ├── validation-feedback-loop.md

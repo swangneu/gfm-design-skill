@@ -97,10 +97,50 @@ Magnitude-preserving on the unforced rotation; Euler only on the bounded control
 
 Start at rated magnitude, zero phase, to avoid a startup transient through the LCL:
 ```
-v_α(0) = V_peak;   v_β(0) = 0
+v_α(0) = +V_peak;   v_β(0) = 0
 ```
 
-This is `‖v‖² = V*²` → `Φ = 0` → no initial magnitude correction. The oscillator begins at the right limit cycle.
+This is `‖v‖² = V*²` → `Φ = 0` → no initial magnitude correction, and the inverter phasor is aligned with a `cos(ω_n t)` grid at `t = 0`. The oscillator begins at the right limit cycle, aligned with the grid.
+
+**Saddle-point warning.** `v_α(0) = −V_peak, v_β(0) = 0` is 180° from a cosine grid. With the current-feedback term active it is a *saddle* of the closed-loop synchronization dynamics: the radial direction stabilizes quickly but the angular direction escapes only when the discrete integration introduces enough numerical noise (or an external perturbation arrives). The system can sit near 180° for hundreds of ms and then escape suddenly. Symptoms:
+
+- Pre-disturbance window statistics are noise (δ near ±180°, P/Q ringing).
+- Post-disturbance settles cleanly because the disturbance kicks the state off the saddle.
+
+If a third-party reference implementation hardcodes `−V_peak` (as `template/dvoc_basic.slx` does), flip the sign before using it in a phase-jump / load-step scenario. Reproducing the reference's startup waveform is *not* the same scenario as testing post-event recovery from a settled state.
+
+## Form variants: Phi-form vs Andronov-Hopf-form
+
+The same control law appears in two algebraic shapes in the literature. They are equivalent under a redefinition of constants, but they read very differently when ported between codebases:
+
+**Phi-form** (this reference, dVOC paper, Colombino/Groß/Dörfler):
+```
+v̇ = ω_n·J·v + η·R(κ)·(K(v) − i) + η·α·Φ(v)·v
+Φ(v) = (V*² − ‖v‖²) / V*²
+```
+Autonomous limit cycle: `‖v‖ = V*`. Set `V* = V_peak` directly.
+
+**Andronov-Hopf form** (C-code implementations, Johnson/Dhople 2014, some lab reference models):
+```
+ẋ = 2ksy·x − ω_n·y − (ksy/kv²)·(x²+y²)·x − (kv·ki/Cap)·u₁
+ẏ = ω_n·x + 2ksy·y − (ksy/kv²)·(x²+y²)·y − (kv·ki/Cap)·u₂
+```
+Autonomous limit cycle: `‖(x,y)‖ = √2·kv` (the factor-of-2 in front of `ksy` doubles the equilibrium of `2 − norm²/kv²`).
+
+**The trap.** A comment that says "`kv = Vnom = V_peak`" sounds right but produces a limit cycle at `√2·V_peak ≈ 1.41·V_peak`, which is then dragged toward the grid voltage by the current feedback. If you assume Phi-form semantics (limit cycle = `kv`) when the code is Hopf-form, your predicted amplitude is off by `√2` and your dispatch loop sits at the wrong operating point.
+
+Equivalence map:
+```
+η      ↔ 2·ksy
+V*     ↔ √2·kv
+K(P*,Q*)v − i  ↔ −(1/η)·(kv·ki/Cap)·[u₁; u₂] with (u₁,u₂) = (i_β_ref − i_β, i_α − i_α_ref)
+                  (this u-form implicitly chooses κ = π/2)
+```
+
+When reading a reference implementation:
+- Run the autonomous law (set `P*=Q*=0`, disconnect grid, integrate) and read the steady `‖v‖`. If it equals the `kv`/`Vnom` constant, it's Phi-form. If it equals `√2·kv`, it's Hopf-form.
+- Cross-check against the radial-gain literal: a `2·ksy·x` term *without* a matching `2/V*²` in the squared-norm factor is the giveaway.
+- Some implementations expose `Vnom = V_peak / √2` so the Hopf limit cycle lands at `V_peak`; others expose `Vnom = V_peak` and accept the `√2·V_peak` limit cycle as the design target. Both are valid; just don't mix them.
 
 ## Current feedback LPF
 

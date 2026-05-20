@@ -126,7 +126,48 @@ Rules of thumb:
 - Values above `1` make the dispatch loop stiffer and can excite LCL, PWM, or
   grid modes; treat them as a tuned design choice requiring validation.
 
-## Sign and PWM validation recipe
+## Form-variant cross-check (dVOC-specific)
+
+> Scope: dVOC controller. For SPS/Simulink-level pitfalls, see `simulink-modeling-conventions.md`. For general GFM-vs-grid amplitude reasoning, see the validation skill's `model-logging-contract.md`.
+
+Before tuning a dVOC controller you've inherited, identify whether the chart implements the Phi-form (limit cycle at `V*`) or the Andronov-Hopf form (limit cycle at `√2·kv`). See `dvoc-design.md` for the full equivalence. Quick tells:
+
+- Phi-form: explicit `(Vstar² − v.'*v)/Vstar²` factor on the radial term, single radial gain `η·α`.
+- Hopf-form: doubled radial gain like `2*ksy*x − ksy/kv²*norm²*x`, current error often expressed as `u₁ = i_β_ref − i_β, u₂ = i_α − i_α_ref` (implicit `κ = π/2`).
+
+If you swap conventions silently (e.g. take the Hopf C-code constants and plug them into a Phi-form chart, or vice versa), the limit cycle magnitude is off by `√2` and the dispatch loop sits at the wrong operating point. The bench symptom is `|v_inv|` settling at `V*·√2` (or `V*/√2`) instead of `V*`.
+
+## Hardcoded chart constants (dVOC-specific specialization)
+
+> Scope: dVOC-specific examples of a broader Simulink issue. The general "MATLAB Function block literals don't accept run-time override from a `Constant`" rule applies to any controller chart; see `simulink-modeling-conventions.md` "MATLAB Function chart literals". This section names the dVOC variables you most often need to patch.
+
+Some reference dVOC implementations (especially S-Function-derived charts) bake the dispatch and amplitude constants into the MATLAB Function script:
+
+```matlab
+% inside the chart
+Ts   = 1e-4;
+Vnom = 69.2820;
+P    = 0;
+Q    = 0;
+```
+
+A `Constant` block wired to a new input port will **not** override these literals. Two ways to change them:
+
+1. **Patch the chart script in place.** Use the Stateflow API to edit the literal:
+   ```matlab
+   rt    = sfroot;
+   chart = rt.find('-isa','Stateflow.EMChart','Path','my_model/Inverter/dVOC');
+   chart.Script = regexprep(chart.Script, '(\<P\s*=\s*)[\+\-]?\d+\.?\d*\s*;', '$1 5000;');
+   ```
+   Lowest-risk path when working from a verified baseline (see `verified-baseline-workflow.md`).
+
+2. **Refactor the chart to take a `ctrl_vec` input.** Higher risk: requires re-validating that the chart's signature change, sample-time inheritance, and persistent-state initialization still match the baseline. Do this only when you need run-time changes (e.g. a setpoint sweep).
+
+If you write a custom dVOC chart from a design produced by this skill, prefer option 2 from the start so future tuning doesn't require script surgery.
+
+dVOC-specific literals worth searching for in any inherited chart: `Ts`, `Vnom`, `kv`, `ki`, `Cap`, `ksy` (or `eta`, `alpha`), `P`, `Q`, the persistent state initial condition for `V_al`/`V_be`, and any `kappa`/`phi` constant.
+
+## Sign and PWM validation recipe (dVOC-specific)
 
 Before retuning dVOC gains, validate implementation conventions in this order:
 

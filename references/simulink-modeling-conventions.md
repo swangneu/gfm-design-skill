@@ -116,6 +116,83 @@ If inner V/I loops are separate Simulink subsystems, the boundary must state
 which block owns current-reference limiting and which block receives the
 anti-windup feedback.
 
+## SPS source-block unit conventions
+
+> Scope: Simulink / SPS specific. Applies to any control law, not just dVOC.
+
+Both `Three-Phase Source` and `Three-Phase Programmable Voltage Source` from `powerlib/Electrical Sources` take their amplitude as **line-to-line RMS**, not LL peak, not phase peak.
+
+| Block | Amplitude parameter | Interpretation |
+|---|---|---|
+| `Three-Phase Source` | `Voltage` | LL RMS in volts |
+| `Three-Phase Programmable Voltage Source` | `PositiveSequence(1)` | LL RMS in volts |
+| `AC Voltage Source` (single-phase) | `Amplitude` | Peak in volts |
+
+For a 3-phase model that should produce `V_phase_peak` at the PCC, set `Voltage = V_phase_peak * sqrt(3) / sqrt(2)` (equivalently `V_phase_RMS * sqrt(3)`). A `Voltage` string like `100/sqrt(2)*sqrt(3) ≈ 122.47` produces `V_phase_peak = 100 V`, not `70.7 V` — even though the literal expression *looks* like it computes a peak quantity. The SPS interpretation rules.
+
+If a model comment says "V peak LL" beside an SPS source literal, query the block (`get_param(src,'Voltage')`) and recompute the expected phase peak with the actual block convention before trusting the comment.
+
+A factor of `sqrt(3/2) ≈ 0.866` between predicted and simulated voltage almost always traces back to this trap.
+
+## Source-of-truth: query the actual SPS block
+
+> Scope: Simulink / SPS specific. Applies to any model handoff, not just dVOC.
+
+When handed a verified Simulink/SPS model, do not trust the README, model comments, or block annotations about what the source/measurement blocks contain. Query the blocks directly:
+
+```matlab
+get_param('mdl/Three-Phase Source', 'Voltage')                  % LL RMS string
+get_param('mdl/Three-Phase Source', 'Frequency')                % Hz
+get_param('mdl/Three-Phase Source', 'PhaseAngle')               % deg (sine convention)
+get_param('mdl/Three-Phase Source', 'InternalConnection')       % 'Y'/'Yn'/'Yg'/'Delta'
+get_param('mdl/Programmable_Grid_Source', 'PositiveSequence')   % '[V_LL_RMS phase_deg freq_Hz]'
+```
+
+The audit takes seconds and catches the `sqrt(3/2)`, `sqrt(2)`, and `sqrt(3)` voltage-amplitude family of errors before they look like a control-law tuning problem. Do this on every inherited model before drawing any tuning conclusion.
+
+## SPS source neutral pin (Yg vs Yn)
+
+> Scope: Simulink / SPS specific. Applies to any control law that uses a programmable grid source for disturbance injection.
+
+`Three-Phase Source` with `InternalConnection='Yg'` is internally grounded and has no exposed neutral pin (3 external connections). `Three-Phase Programmable Voltage Source` exposes a neutral pin (`LConn(1)`) regardless of its `Network Connection` setting. When swapping these blocks programmatically:
+
+```matlab
+% After replacing the Three-Phase Source with a Programmable VS,
+% add a Ground to LConn(1) to avoid 'voltage source short-circuited'.
+add_block('powerlib/Elements/Ground', [mdl '/Grid_Neutral_Ground'], 'Position', ...);
+add_line(mdl, ...
+    get_param([mdl '/Grid_Neutral_Ground'],'PortHandles').LConn(1), ...
+    get_param([mdl '/Programmable_Grid_Source'],'PortHandles').LConn(1), ...
+    'autorouting','on');
+```
+
+The same caution applies in reverse if you ever replace a Programmable VS with a Three-Phase Source: delete the now-unused Ground.
+
+## MATLAB Function chart literals
+
+> Scope: Simulink-level rule (applies to any MATLAB Function chart, not just dVOC). For dVOC-specific literals worth searching for, see `dvoc-implementation-conventions.md`.
+
+Constants declared at the top of a MATLAB Function chart's script are evaluated at compile time:
+
+```matlab
+function y = myChart(u)
+%#codegen
+gain = 1.5;        % literal — locked at compile time
+y = gain * u;
+end
+```
+
+Wiring a new value through a `Constant` block to a new input port does **not** override these literals. Two paths:
+
+1. **Patch the script via the Stateflow API.** Lowest risk if you're working from a verified baseline.
+   ```matlab
+   chart = sfroot.find('-isa','Stateflow.EMChart','Path','my_model/Inverter/Ctrl');
+   chart.Script = regexprep(chart.Script, '(\<gain\s*=\s*)[\+\-]?\d+\.?\d*\s*;', '$1 2.5;');
+   ```
+2. **Refactor the chart to accept a parameter input.** Higher risk: changes the chart's signature, sample-time inheritance, and (if you change the persistent-state size) the initial-condition behavior.
+
+When generating a new chart from a `gfm_params` struct, prefer (2) from the start: pass `p.ctrl_vec` or per-field inputs so the chart can be retuned at run time without script surgery.
+
 ## Electrical topology details to keep visible
 
 Do not collapse these into an undocumented impedance:
