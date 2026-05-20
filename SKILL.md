@@ -98,6 +98,7 @@ These are independent of which control family you chose. Read both for any hando
 | Reference | Read when |
 |---|---|
 | `references/dvoc-implementation-conventions.md` | Implementing or porting dVOC into a switching/SPS model: form-variant cross-check, hardcoded chart literals (`P`, `Q`, `Vnom`, IC), sign and PWM validation recipe. |
+| `references/dvoc-steady-state-diagnosis.md` | A dVOC simulation reports steady-state `|P_pcc/P_set|` close to but not equal to 1 (sign and Q correct, no limiter activity). Closed-form formulas for the two routine contributors — voltage-reference-vs-grid mismatch and filter ohmic loss. Read BEFORE retuning gains. |
 
 ### Citations
 
@@ -137,8 +138,9 @@ When the user returns with a `gfm-validation` report, read `references/validatio
 
 1. **Measurement/logging issue**: unit mismatch, sign convention, wrong PCC boundary, or bad settled window. Send the user back to `$gfm-validation` or model logging fixes; do not retune.
 2. **Scenario outside assumptions**: current limiting, modulation saturation, LVRT/FRT, unbalanced fault, high-SCR stress, or a grid impedance not represented in `p`. Update assumptions and protection notes before retuning.
-3. **Design mismatch**: prediction and logs are measured correctly but final P/Q/f/V, damping, sharing, or current headroom miss the target. Re-enter this skill's design workflow with the validation metrics as new specs.
-4. **Model implementation mismatch**: controller interface, Park convention, limiter behavior, or inner-loop realization differs from the parameter-struct conventions. State the mismatch and either adapt the handoff assumptions or ask the user to align the model.
+3. **Quantifiable steady-state offset (dVOC)**: if `|P_pcc/P_set|` is a stable ratio close to but not equal to 1, with sign and Q correct, check `references/dvoc-steady-state-diagnosis.md` BEFORE retuning. Two routine contributors (voltage-reference-vs-grid mismatch and filter ohmic loss) explain almost all such offsets with closed-form formulas — no controller change needed.
+4. **Design mismatch**: prediction and logs are measured correctly but final P/Q/f/V, damping, sharing, or current headroom miss the target. Re-enter this skill's design workflow with the validation metrics as new specs.
+5. **Model implementation mismatch**: controller interface, Park convention, limiter behavior, or inner-loop realization differs from the parameter-struct conventions. State the mismatch and either adapt the handoff assumptions or ask the user to align the model.
 
 Never treat a failed validation report as automatic proof that droop/VSG/dVOC/PSC gains are wrong. First prove the simulation case matches the design assumptions.
 
