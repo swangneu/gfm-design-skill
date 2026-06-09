@@ -30,7 +30,7 @@ hand the parameter struct off to the user's Simulink model — manual sim review
 
 The skill never invokes `sim()`. Stop using it once a model exists and the question becomes "does the sim match the design".
 
-Companion skill: use `$gfm-validation` for simulation-facing work after this skill produces a design. `gfm-validation` runs or inspects Simulink logs, compares them against `gfm_predict_steady_state`, and writes validation reports. Keep controller retuning and first-pass parameter design here; keep model execution and log comparison there.
+Companion skill: use `gfm-validation` for simulation-facing work after this skill produces a design. `gfm-validation` runs or inspects Simulink logs, compares them against `gfm_predict_steady_state`, and writes validation reports. Keep controller retuning and first-pass parameter design here; keep model execution and log comparison there.
 
 ## When to use this skill
 
@@ -44,8 +44,8 @@ Use when the user:
 
 Do NOT use when:
 
-- Simulation is already done and the user is only asking to extract logs, compare signals, or judge pass/fail results → use `$gfm-validation`
-- Simulation is already done and the user is debugging raw waveforms without asking for design changes → use `$gfm-validation` or manual sim review
+- Simulation is already done and the user is only asking to extract logs, compare signals, or judge pass/fail results → use `gfm-validation`
+- Simulation is already done and the user is debugging raw waveforms without asking for design changes → use `gfm-validation` or manual sim review
 - The question is about PWM correctness, bridge gate ordering, sector tables → out of scope
 - The controller is grid-following (PLL-based, current-source) → out of scope
 
@@ -136,7 +136,7 @@ Follow these steps in order. Skipping ahead invalidates downstream choices.
 
 When the user returns with a `gfm-validation` report, read `references/validation-feedback-loop.md` before changing parameters. Triage findings in this order:
 
-1. **Measurement/logging issue**: unit mismatch, sign convention, wrong PCC boundary, or bad settled window. Send the user back to `$gfm-validation` or model logging fixes; do not retune.
+1. **Measurement/logging issue**: unit mismatch, sign convention, wrong PCC boundary, or bad settled window. Send the user back to `gfm-validation` or model logging fixes; do not retune.
 2. **Scenario outside assumptions**: current limiting, modulation saturation, LVRT/FRT, unbalanced fault, high-SCR stress, or a grid impedance not represented in `p`. Update assumptions and protection notes before retuning.
 3. **Quantifiable steady-state offset (dVOC)**: if `|P_pcc/P_set|` is a stable ratio close to but not equal to 1, with sign and Q correct, check `references/dvoc-steady-state-diagnosis.md` BEFORE retuning. Two routine contributors (voltage-reference-vs-grid mismatch and filter ohmic loss) explain almost all such offsets with closed-form formulas — no controller change needed.
 4. **Design mismatch**: prediction and logs are measured correctly but final P/Q/f/V, damping, sharing, or current headroom miss the target. Re-enter this skill's design workflow with the validation metrics as new specs.

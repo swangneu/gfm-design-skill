@@ -100,4 +100,4 @@ If steady-state `|V_inv|` is off by `√2`, you've likely confused Phi-form vs H
 - Chart literal patching, source-block parameter audit, neutral-pin gotcha: [dvoc-implementation-conventions](dvoc-implementation-conventions.md).
 - SPS source unit conventions and Yg/Yn neutral behavior: [simulink-modeling-conventions](simulink-modeling-conventions.md).
 - Phi-form vs Hopf-form amplitude trap and saddle-point IC: [dvoc-design](dvoc-design.md).
-- Pre-event settled-window verification on the validation side: companion `$gfm-validation` skill, `references/pre-flight-convention-audit.md`.
+- Pre-event settled-window verification on the validation side: companion `gfm-validation` skill, `references/pre-flight-convention-audit.md`.
