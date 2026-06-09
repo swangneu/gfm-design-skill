@@ -6,7 +6,7 @@ Use this reference when a user brings back a `gfm-validation` report, validation
 
 `gfm-validation` owns running `sim()`, extracting logs, computing pass/fail checks, and writing validation reports. `gfm-design` owns design updates after those results are interpreted.
 
-Do not rerun or reinterpret raw simulations here unless the task is explicitly about retuning or design assumptions. If the user only wants log extraction, plotting, report generation, or pass/fail comparison, send them to `$gfm-validation`.
+Do not rerun or reinterpret raw simulations here unless the task is explicitly about retuning or design assumptions. If the user only wants log extraction, plotting, report generation, or pass/fail comparison, send them to `gfm-validation`.
 
 ## Triage order
 
@@ -36,7 +36,7 @@ Do not rerun or reinterpret raw simulations here unless the task is explicitly a
    - Change the smallest set of specs or gains that addresses the mismatch.
    - Recompute dependent fields through `gfm_design_from_specs.m` or the relevant helper instead of editing one field by hand.
    - Regenerate `gfm_predict_steady_state` and, when relevant, `gfm_smallsignal`.
-   - Tell the user to rerun `$gfm-validation` on the same scenario and any newly relevant stress case.
+   - Tell the user to rerun `gfm-validation` on the same scenario and any newly relevant stress case.
 
 ## Report-back template
 
@@ -48,7 +48,7 @@ Validation feedback triage:
 - Assumption status: nominal / current-limited / modulation-limited / LVRT/FRT / strong-grid / model mismatch.
 - Design action: no retune, retune fields X/Y/Z, or update model/logging first.
 - New prediction: P/Q/f/V/current headroom and small-signal poles if relevant.
-- Next validation: scenario(s) to rerun with $gfm-validation.
+- Next validation: scenario(s) to rerun with gfm-validation.
 ```
 
 Do not claim the redesign is verified until the updated simulation report comes back clean.

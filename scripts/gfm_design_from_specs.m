@@ -20,8 +20,14 @@ function p = gfm_design_from_specs(varargin)
 %     'I_cont_pu'    - continuous current limit pu       (default 1.0)
 %     'I_limit_pu'   - software limiter pickup pu        (default 1.2)
 %     'I_short_pu'   - short-time current capability pu  (default 1.5)
+%     'I_abs_max_pu' - absolute hardware ceiling pu      (default 1.5)
 %     't_short_limit'- short-time current duration s     (default 2.0)
 %     'm_max'        - modulation-index ceiling          (default 0.98)
+%     'current_limit_mode' - limiter realization assumed by the controller:
+%                      'none' | 'virtual_impedance' |
+%                      'voltage_reference_scaling' |
+%                      'current_reference_saturation' | 'mode_switch'
+%                                                        (default 'none')
 %
 %   Law-specific (apply only when 'law' matches):
 %     VSG:    'H_inertia'  - virtual inertia constant s  (default 2.0)
